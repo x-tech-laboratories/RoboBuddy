@@ -27,9 +27,6 @@ export interface EyeState {
      *  stays closed, a wink, and auto blink blinks only the other. */
     closed: boolean | 'left' | 'right';
 }
-/** What the whole face does: hold still, or keep nodding (at the nod settings). */
-export declare const HEAD_STATES: readonly ["still", "nod"];
-export type HeadState = typeof HEAD_STATES[number];
 /** A mouth state, in screen pixels. */
 export interface MouthState {
     /** How far the left corner bends: positive up (smile), negative down (frown). */
@@ -67,6 +64,8 @@ export interface LookState {
     };
     /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
     shakeHead?: boolean;
+    /** Keep nodding while looking here (at the nod settings), until another look is set. */
+    nod?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
     group?: string;
 }
@@ -92,8 +91,6 @@ export interface Modes {
  * it leaves out is its default from FaceConfig.toggles; a look it leaves out stays where it is.
  */
 export interface MoodConfig extends Partial<Toggles> {
-    /** One of HEAD_STATES; still if left out. */
-    head?: HeadState;
     eyes?: string;
     mouth?: string;
     look?: string;
@@ -124,6 +121,9 @@ export interface FaceConfig {
         /** Space between the bottom of the eyes and the mouth. */
         gap: number;
         thickness: number;
+        /** How round the corners of an open mouth are, like an eye's radius. Only the corners that open by their own
+         *  amount (leftOpen, rightOpen) have a corner to round. */
+        radius: number;
         /** How much of each end of the line bends at the corners, as a fraction of its length. */
         curl: number;
         /** The face's own mouth length, used whatever the mouth state when moodWidth is off. */

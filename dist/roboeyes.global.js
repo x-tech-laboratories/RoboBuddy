@@ -37,6 +37,7 @@ const defaultConfigJson = {
     "mouth": {
         "gap": 16,
         "thickness": 3,
+        "radius": 4,
         "curl": 0.25,
         "width": 50,
         "moodWidth": false
@@ -413,6 +414,24 @@ const defaultConfigJson = {
             "y": 1,
             "shakeHead": true,
             "group": "Shaking head"
+        },
+        "nodLeft": {
+            "x": 0,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodRight": {
+            "x": 1,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
         }
     },
     "moods": {
@@ -499,8 +518,6 @@ const defaultConfigJson = {
     }
 }
 ;
-/** What the whole face does: hold still, or keep nodding (at the nod settings). */
-const HEAD_STATES = ['still', 'nod'];
 /** The face's settings and states as they come, kept in defaultConfig.json. */
 const defaultConfig = defaultConfigJson;
 /** A deep copy of config with patch laid over it. */
@@ -748,7 +765,6 @@ class RoboEyes {
         this.looks = structuredClone(defaultConfig.looks);
         this.moods = structuredClone(defaultConfig.moods);
         this.mood = 'default'; // the mood set last
-        this.headState = 'still'; // the face states in use now
         this.eyeState = 'open';
         this.mouthState = 'neutral';
         this.look = defaultConfig.look;
@@ -820,6 +836,7 @@ class RoboEyes {
         //*********************************************************************************************
         this.mouth = defaultConfig.modes.mouth; // draw a mouth under the eyes
         this.mouthThickness = defaultConfig.mouth.thickness; // line thickness in pixels
+        this.mouthRadius = defaultConfig.mouth.radius; // how round the corners of an open mouth are
         this.mouthCurl = defaultConfig.mouth.curl; // how much of each end of the line bends, as a fraction of its length
         this.mouthWidth = defaultConfig.mouth.width; // the face's own length, used when the mouth state does not set it
         this.mouthMoodWidth = defaultConfig.mouth.moodWidth; // whether the mouth state sets the length
@@ -935,7 +952,7 @@ class RoboEyes {
                 closedHeight: this.eyeClosedHeight,
             },
             mouth: {
-                gap: this.mouthGapNext, thickness: this.mouthThickness, curl: this.mouthCurl,
+                gap: this.mouthGapNext, thickness: this.mouthThickness, radius: this.mouthRadius, curl: this.mouthCurl,
                 width: this.mouthWidth, moodWidth: this.mouthMoodWidth,
             },
             blink: { interval: this.blinkInterval, variation: this.blinkIntervalVariation, speed: this.blinkSpeed },
@@ -977,6 +994,7 @@ class RoboEyes {
             this.eyeRheightNext = this.eyeClosedHeight;
         this.setMouthGap(c.mouth.gap);
         this.mouthThickness = c.mouth.thickness;
+        this.mouthRadius = c.mouth.radius;
         this.mouthCurl = c.mouth.curl;
         this.mouthWidth = Math.max(0, c.mouth.width);
         this.mouthMoodWidth = c.mouth.moodWidth;
@@ -1027,6 +1045,8 @@ class RoboEyes {
                 this.looks[name].wander = true;
             if (look.shakeHead)
                 this.looks[name].shakeHead = true;
+            if (look.nod)
+                this.looks[name].nod = true;
             // dart: true (as the demo's checkbox sends) gets the default reach and hold
             if (look.dart)
                 this.looks[name].dart = { reach: 0.5, holdMs: 600, ...(typeof look.dart === 'object' ? withoutNulls(look.dart) : {}) };
@@ -1133,17 +1153,10 @@ class RoboEyes {
         for (const [key, field] of Object.entries(TOGGLES)) {
             this[field] = m[key] ?? this.toggleDefaults[key];
         }
-        this.setHead(m.head ?? 'still');
         this.applyEyes(m.eyes ?? 'open', m.override?.eyes ?? undefined);
         this.applyMouth(m.mouth ?? 'neutral', m.override?.mouth ?? undefined);
         if (m.look)
             this.setLook(m.look);
-    }
-    // Port: set what the whole face does (see HEAD_STATES): hold still, or keep nodding.
-    // Changing it stops the nod straight away (a one-shot anim_nod() still runs its time). Shaking the head is a look.
-    setHead(name) {
-        if (HEAD_STATES.includes(name))
-            this.headState = name;
     }
     // Port: set the eye state by name (see eyeStates), whatever the mood
     setEyes(name) {
@@ -1444,11 +1457,11 @@ class RoboEyes {
         // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
-        // Port: a look that shakes the head or a head state that nods starts the swing, which then keeps going until it changes
-        const shaking = !!this.looks[this.look]?.shakeHead;
+        // Port: a look that shakes the head or nods starts the swing, which then keeps going until the look changes
+        const shaking = !!this.looks[this.look]?.shakeHead, nodding = !!this.looks[this.look]?.nod;
         if (shaking && !this.shakeHead)
             this.shakeHead = true;
-        if (this.headState === 'nod' && !this.nod)
+        if (nodding && !this.nod)
             this.nod = true;
         if (this.laugh) {
             if (this.laughToggle) {
@@ -1487,7 +1500,7 @@ class RoboEyes {
                 this.nodAnimationTimer = millis();
                 this.nodToggle = false;
             }
-            else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && this.headState !== 'nod') {
+            else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && !nodding) {
                 this.shakeYNext = 0;
                 this.mouthShakeYNext = 0;
                 this.nodToggle = true;
@@ -1769,15 +1782,44 @@ class RoboEyes {
         // The top edge is the line as before. With any opening, the bottom edge runs back under it, lower by the
         // corner's own opening at each end and by the centre's opening in between; a closed mouth is just the line.
         const open = this.mouthOpenCurrent, openL = this.mouthLeftOpenCurrent, openR = this.mouthRightOpenCurrent;
-        const segments = [
-            { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
-            { to: [x1 - curl, y] },
-            { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
-        ];
-        if (open > 0.05 || openL > 0.05 || openR > 0.05) {
-            segments.push({ to: [x1, y - liftR + openR] }, { control: [x1 - curl * 0.4, y + open], to: [x1 - curl, y + open] }, { to: [x0 + curl, y + open] }, { control: [x0 + curl * 0.4, y + open], to: [x0, y - liftL + openL] });
+        const k = 0.4; // where each curl's control point sits along it
+        if (open <= 0.05 && openL <= 0.05 && openR <= 0.05) {
+            this.display.strokeLine({
+                start: [x0, y - liftL],
+                segments: [
+                    { control: [x0 + curl * k, y], to: [x0 + curl, y] },
+                    { to: [x1 - curl, y] },
+                    { control: [x1 - curl * k, y], to: [x1, y - liftR] },
+                ],
+            }, thickness);
+            return;
         }
-        this.display.strokeLine({ start: [x0, y - liftL], segments }, thickness, segments.length > 3);
+        // One end of the mouth, from the inner end of its top curl, round the corner, down its side and back along the
+        // bottom curl. The radius rounds where the side meets each curl: both are cut short, and a bend joins them.
+        const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+        const quad = (a, c, b, t) => lerp(lerp(a, c, t), lerp(c, b, t), t);
+        const endOf = (dir, lift, own) => {
+            const xe = dir < 0 ? x0 : x1, xi = xe - dir * curl, xc = xe - dir * curl * k;
+            const r = Math.max(0, Math.min(this.mouthRadius, own / 2));
+            // how far along a curl its cut is, so the bend takes about r of it
+            const cut = (chord) => (r > 0.05 && chord > 0 ? Math.min(0.8, r / (chord * 1.1)) : 0);
+            const topIn = [xi, y], topCtl = [xc, y], corner = [xe, y - lift];
+            const botIn = [xi, y + open], botCtl = [xc, y + open], bottom = [xe, y - lift + own];
+            const tu = cut(Math.hypot(curl, lift)), bu = cut(Math.hypot(curl, y + open - bottom[1]));
+            const nodes = [
+                topIn, quad(topIn, topCtl, corner, 1 - tu), [xe, corner[1] + r], [xe, bottom[1] - r], quad(bottom, botCtl, botIn, bu), botIn,
+            ];
+            const controls = [lerp(topIn, topCtl, 1 - tu), corner, undefined, bottom, lerp(botCtl, botIn, bu)];
+            return { nodes, controls };
+        };
+        const endR = endOf(1, liftR, openR), endL = endOf(-1, liftL, openL);
+        const segments = [{ to: endR.nodes[0] }];
+        endR.controls.forEach((control, i) => segments.push({ control, to: endR.nodes[i + 1] }));
+        segments.push({ to: endL.nodes[5] });
+        // the left end is the same shape mirrored, so it is walked backwards
+        for (let i = 4; i >= 0; i--)
+            segments.push({ control: endL.controls[i], to: endL.nodes[i] });
+        this.display.strokeLine({ start: endL.nodes[0], segments }, thickness, true);
     }
 }
 const LEVEL = { height: 0, angle: 0, curve: 0 };
@@ -1817,5 +1859,5 @@ function withoutNulls(obj) {
     return Object.fromEntries(Object.entries(obj ?? {}).filter(([, value]) => value !== null && value !== undefined));
 }
 
-window.RoboEyesLib = { HEAD_STATES, defaultConfig, mergeConfig, DEFAULT, SAD, TIRED, ANGRY, HAPPY, SMIRK, ASLEEP, HAPPY_ASLEEP, WORRIED, FURIOUS, ON, OFF, N, NE, E, SE, S, SW, W, NW, CanvasDisplay, RoboEyes };
+window.RoboEyesLib = { defaultConfig, mergeConfig, DEFAULT, SAD, TIRED, ANGRY, HAPPY, SMIRK, ASLEEP, HAPPY_ASLEEP, WORRIED, FURIOUS, ON, OFF, N, NE, E, SE, S, SW, W, NW, CanvasDisplay, RoboEyes };
 })();

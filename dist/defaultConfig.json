@@ -17,6 +17,7 @@
     "mouth": {
         "gap": 16,
         "thickness": 3,
+        "radius": 4,
         "curl": 0.25,
         "width": 50,
         "moodWidth": false
@@ -393,6 +394,24 @@
             "y": 1,
             "shakeHead": true,
             "group": "Shaking head"
+        },
+        "nodLeft": {
+            "x": 0,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodRight": {
+            "x": 1,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
         }
     },
     "moods": {
