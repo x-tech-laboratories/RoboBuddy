@@ -45,7 +45,7 @@ A face is built in layers:
      stays closed and auto blink blinks only the other), `peekLeft` or `peekRight` (the other eye shut, that one
      with happy sad's lids, the top tilted the other way) or `confused` (the left lid lowered, like one eyebrow raised)
    - a mouth state, `setMouthState(name)`: `neutral`, `smile`, `softSmile`, `slack`, `frown`, `flat`, `surprised`,
-     `smirk` or `wavy`
+     `smirk`, `wavy`, or the open mouths `open`, `wide`, `gasp` and `shout`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
@@ -121,7 +121,9 @@ over the shared ones, e.g. `left: { top: { height: 0.4 } }`. Lid sizes are fract
   further in than the middle (a bowl, rounding off the eye's corners). Either way, `height` is the depth at the
   shallower part
 
-A mouth state is `left` and `right` (how far each corner bends, in pixels) and optionally `width`, which only counts
+A mouth state is `left` and `right` (how far each corner bends, in pixels), optionally `open`, `leftOpen` and `rightOpen`
+(how far the middle and each corner open downwards, in pixels, so the line becomes a rectangle; the strip under the eyes
+reserves room for the largest) and optionally `width`, which only counts
 when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `surprised`, a dot, does). With
 `followLook: true` (as `smirk`) the corners swap as the eyes look left, so the smirk curls up on the side away from
 where they look. A look is `x` and
@@ -171,9 +173,9 @@ still be unique within its kind.
   next mood.
 - New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (sleepy eyes
   looking straight ahead, the surprised mouth's dot, auto blink off), `HAPPY_ASLEEP` (sleepy eyes looking straight ahead, auto blink off),
-  `WORRIED` (sad eyes, wavy mouth) and `FURIOUS` (angry eyes, frown, wandering, curious and shaking), and, without
+  `WORRIED` (sad eyes, wavy mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
   constants, `confused` (confused eyes, wavy mouth),
-  `surprised` (open eyes, the surprised mouth's dot) and `scared` (worried, but sweating, shaking and darting its eyes
+  `surprised` (open eyes, the gasp mouth) and `scared` (worried, but sweating, shaking and darting its eyes
   from side to side).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.

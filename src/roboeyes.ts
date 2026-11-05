@@ -103,8 +103,9 @@ export interface Display {
     clearDisplay(): void;
     /** A filled rounded rectangle in the main colour, minus any cut-outs (the eyelids). */
     fillRoundRect(x: number, y: number, w: number, h: number, r: number, cutouts?: Cutout[]): void;
-    /** A line of the given thickness with round ends, through the given points, in the main colour. */
-    strokeLine(points: MouthPath, thickness: number): void;
+    /** A line of the given thickness with round ends, through the given points, in the main colour. closed: join the
+     *  end back to the start and fill what it encloses, so the line becomes the edge of a solid shape. */
+    strokeLine(points: MouthPath, thickness: number, closed?: boolean): void;
     display(): void;
 }
 
@@ -191,11 +192,16 @@ export class CanvasDisplay implements Display {
         ctx.restore();
     }
 
-    strokeLine(path: MouthPath, thickness: number) {
+    strokeLine(path: MouthPath, thickness: number, closed = false) {
         if (thickness <= 0) return;
         const ctx = this.ctx;
         ctx.beginPath();
         tracePath(ctx, path);
+        if (closed) {
+            ctx.closePath();
+            ctx.fillStyle = this.main;
+            ctx.fill();
+        }
         ctx.strokeStyle = this.main;
         ctx.lineWidth = thickness;
         ctx.lineCap = 'round';
@@ -359,6 +365,13 @@ export class RoboEyes {
     mouthLeftNext = 0;
     mouthRightCurrent = 0;
     mouthRightNext = 0;
+    // Port prototype: the mouth's centre is a rectangle that opens downwards, and each corner opens by its own amount
+    mouthOpenCurrent = 0;
+    mouthOpenNext = 0;
+    mouthLeftOpenCurrent = 0;
+    mouthLeftOpenNext = 0;
+    mouthRightOpenCurrent = 0;
+    mouthRightOpenNext = 0;
 
     //*********************************************************************************************
     //  Macro Animations
@@ -540,6 +553,7 @@ export class RoboEyes {
         this.mouthStates = {};
         for (const [name, state] of Object.entries(c.mouthStates)) {
             this.mouthStates[name] = { left: state.left ?? 0, right: state.right ?? 0 };
+            for (const key of ['open', 'leftOpen', 'rightOpen'] as const) if (state[key]) this.mouthStates[name][key] = state[key];
             if (state.width !== undefined && state.width !== null) this.mouthStates[name].width = state.width;
             if (state.ownWidth) this.mouthStates[name].ownWidth = true;
             if (state.followLook) this.mouthStates[name].followLook = true;
@@ -750,6 +764,9 @@ export class RoboEyes {
         this.mouthWidthNext = ownWidth ? shape.width! : this.mouthWidth;
         this.mouthLeftNext = shape.left;
         this.mouthRightNext = shape.right;
+        this.mouthOpenNext = Math.max(0, shape.open ?? 0);
+        this.mouthLeftOpenNext = Math.max(0, shape.leftOpen ?? 0);
+        this.mouthRightOpenNext = Math.max(0, shape.rightOpen ?? 0);
         this.mouthFollowLook = !!shape.followLook;
     }
 
@@ -849,7 +866,9 @@ export class RoboEyes {
 
     // Port: room reserved under the eyes for the mouth (0 when the mouth is off)
     getMouthSpace() {
-        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 : 0;
+        // Port prototype: plus the most any mouth state opens, so an open mouth never leaves the screen
+        const open = Math.max(0, ...Object.values(this.mouthStates).map((s) => Math.max(s.open ?? 0, s.leftOpen ?? 0, s.rightOpen ?? 0)), ...Object.values(this.mouthOverride ? [this.mouthOverride] : []).map((s) => s.open ?? 0));
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + open : 0;
     }
 
     //*********************************************************************************************
@@ -970,6 +989,9 @@ export class RoboEyes {
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
         this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext);
         this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext);
+        this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, this.mouthOpenNext);
+        this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, this.mouthLeftOpenNext);
+        this.mouthRightOpenCurrent = this.ease(this.mouthRightOpenCurrent, this.mouthRightOpenNext);
 
         //// APPLYING MACRO ANIMATIONS ////
 
@@ -1275,14 +1297,23 @@ export class RoboEyes {
             [left, right] = [left + (right - left) * mirror, right + (left - right) * mirror];
         }
         const liftL = clamp(left), liftR = clamp(right);
-        this.display.strokeLine({
-            start: [x0, y - liftL],
-            segments: [
-                { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
-                { to: [x1 - curl, y] },
-                { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
-            ],
-        }, thickness);
+        // The top edge is the line as before. With any opening, the bottom edge runs back under it, lower by the
+        // corner's own opening at each end and by the centre's opening in between; a closed mouth is just the line.
+        const open = this.mouthOpenCurrent, openL = this.mouthLeftOpenCurrent, openR = this.mouthRightOpenCurrent;
+        const segments: Array<{ control?: Point; to: Point }> = [
+            { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
+            { to: [x1 - curl, y] },
+            { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
+        ];
+        if (open > 0.05 || openL > 0.05 || openR > 0.05) {
+            segments.push(
+                { to: [x1, y - liftR + openR] },
+                { control: [x1 - curl * 0.4, y + open], to: [x1 - curl, y + open] },
+                { to: [x0 + curl, y + open] },
+                { control: [x0 + curl * 0.4, y + open], to: [x0, y - liftL + openL] },
+            );
+        }
+        this.display.strokeLine({ start: [x0, y - liftL], segments }, thickness, segments.length > 3);
     }
 }
 
