@@ -1262,7 +1262,8 @@ export class RoboEyes {
         const rightEdge = this.cyclops ? this.eyeLx + this.eyeLwidthCurrent : this.eyeRx + this.eyeRwidthCurrent;
         const cx = (leftEdge + rightEdge) / 2 + this.shakeX;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
-        const y = eyeCentre + this.eyeLheightDefault / 2 + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY;
+        const tallest = Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault); // the eyes' shared bottom edge
+        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY;
 
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * this.mouthCurl; // how much of each end bends
