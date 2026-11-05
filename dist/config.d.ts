@@ -131,8 +131,8 @@ export interface FaceConfig {
         /** On: the mouth state's width (if it has one) sets the length. Off (the default): it stays at width. */
         moodWidth: boolean;
     };
-    /** speed: how much of the remaining way a blinking eye goes each frame (0.5, as the original). The laugh, shake
-     *  head and nod swings move at the same speed. */
+    /** speed: how much of the remaining way a blinking eye goes each frame (0.5, as the original). The laugh
+     *  swings move at the same speed; shake head and nod have their own. */
     blink: {
         interval: number;
         variation: number;
@@ -155,11 +155,11 @@ export interface FaceConfig {
     };
     shakeHead: {
         amplitude: number;
-        durationMs: number;
+        speed: number;
     };
     nod: {
         amplitude: number;
-        durationMs: number;
+        speed: number;
     };
     /** How far the shake toggle jitters the eyes, in pixels. */
     shake: {

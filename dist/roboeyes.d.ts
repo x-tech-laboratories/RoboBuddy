@@ -197,15 +197,11 @@ export declare class RoboEyes {
     dartSide: number;
     dartTimer: number;
     shakeHead: boolean;
-    shakeHeadAnimationTimer: number;
-    shakeHeadAnimationDuration: number;
-    shakeHeadToggle: boolean;
     shakeHeadAmplitude: number;
+    shakeHeadSpeed: number;
     nod: boolean;
-    nodAnimationTimer: number;
-    nodAnimationDuration: number;
-    nodToggle: boolean;
     nodAmplitude: number;
+    nodSpeed: number;
     laugh: boolean;
     laughAnimationTimer: number;
     laughAnimationDuration: number;
@@ -290,9 +286,6 @@ export declare class RoboEyes {
     close(left?: boolean, right?: boolean): void;
     open(left?: boolean, right?: boolean): void;
     blink(left?: boolean, right?: boolean): void;
-    anim_shakeHead(): void;
-    anim_confused(): void;
-    anim_nod(): void;
     anim_laugh(): void;
     drawEyes(): void;
     /** A lid in pixels for an eye h tall, eased like the original's eyelids. */
