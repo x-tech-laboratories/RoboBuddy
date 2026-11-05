@@ -30,25 +30,41 @@
  * - Drawing goes through a small Display interface. CanvasDisplay draws with vector shapes, so it
  *   is sharp at any size. Instead of painting the eyelids over the eyes in the background colour,
  *   it cuts them out of the eyes, which gives clean edges and lets the background be transparent.
- *   The shapes are exactly the original triangles and rounded rectangles.
- * - precision: "pixel" (the default) keeps the original's integer maths, so the motion matches an
- *   OLED frame for frame. "smooth" uses fractional values for softer motion on large screens.
+ * - A face is composed of face states: an eye state (a top and bottom lid, or closed), a mouth
+ *   state, a look (a position, or wander) and toggles (curious, sweat, shake). Moods are named
+ *   combinations of them (config.ts). A lid has a height, an angle and a curve, so the original's
+ *   tired, angry and happy eyelids are three eye states among many. The tired mood is called sad
+ *   here (TIRED still works). Sad and angry are exactly the original triangles; happy is a curve
+ *   close to the original's rounded rectangle. configure() changes any setting.
+ * - precision: "pixel" keeps the original's integer maths, so the motion matches an OLED frame for
+ *   frame. "smooth" (the default, modes.smooth) uses fractional values for softer motion on large
+ *   screens. The original's idle mode is the wander look, and the face starts with it; the original
+ *   starts with idle off. The positions of setPosition() are looks too.
  * - begin() also re-centres the eyes for the new screen size (the original only does that on the
  *   next setPosition() call).
  * - New: a mouth. It is always a single line under the eyes; only its length, how far below the
  *   eyes it sits, and how far each of its two corners bends up or down change. It follows the eyes,
  *   eases like every other value, takes its shape from the mood, and can shrink away completely
  *   (setMouthWidth(0)).
- * - anim_laugh() and anim_confused() swing the eyes with the same halfway-per-frame easing as a
- *   blink, instead of jumping every frame, and the mouth does not follow that shake: it bounces on
- *   its own while laughing and holds still while confused.
+ * - anim_laugh() and anim_shakeHead() (the original's anim_confused(), which is kept as another
+ *   name for it) swing the eyes with the same halfway-per-frame easing as a blink, instead of
+ *   jumping every frame. While laughing the mouth bounces on its own; a head shake moves it with
+ *   the eyes. New: anim_nod(), the same swing down and up, with the mouth moving with the eyes.
  * ---------------------------------------------------------------------------------------------
  */
+import { defaultConfig, FACE_STATES, mergeConfig, } from './config.js';
+export * from './config.js';
 // For mood type switch
 export const DEFAULT = 0;
-export const TIRED = 1;
+export const SAD = 1;
+export const TIRED = SAD; // the original's name for SAD
 export const ANGRY = 2;
 export const HAPPY = 3;
+export const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
+export const ASLEEP = 5; // port: eyes closed, mouth flat (not in the original)
+export const HAPPY_ASLEEP = 6; // port: eyes closed, smiling (not in the original)
+export const WORRIED = 7; // port: sweating, mouth up on the left and down on the right (not in the original)
+export const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
 export const ON = true;
 export const OFF = false;
@@ -61,6 +77,12 @@ export const S = 5; // south, bottom center
 export const SW = 6; // south-west, bottom left
 export const W = 7; // west, middle left
 export const NW = 8; // north-west, top left
+// Port: the mood constants name these entries of FaceConfig.moods
+const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'happyAsleep', 'worried', 'furious'];
+// Port: the position constants name these entries of FaceConfig.looks
+const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+// Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
+const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
 export class CanvasDisplay {
     constructor(canvas, options = {}) {
@@ -121,6 +143,10 @@ export class CanvasDisplay {
                 ctx.lineTo(c[0], c[1]);
                 ctx.closePath();
             }
+            else if (cut.kind === 'path') {
+                tracePath(ctx, cut.path);
+                ctx.closePath();
+            }
             else {
                 roundRectPath(ctx, cut.x, cut.y, cut.w, cut.h, cut.r);
             }
@@ -137,13 +163,7 @@ export class CanvasDisplay {
             return;
         const ctx = this.ctx;
         ctx.beginPath();
-        ctx.moveTo(path.start[0], path.start[1]);
-        for (const seg of path.segments) {
-            if (seg.control)
-                ctx.quadraticCurveTo(seg.control[0], seg.control[1], seg.to[0], seg.to[1]);
-            else
-                ctx.lineTo(seg.to[0], seg.to[1]);
-        }
+        tracePath(ctx, path);
         ctx.strokeStyle = this.main;
         ctx.lineWidth = thickness;
         ctx.lineCap = 'round';
@@ -151,6 +171,15 @@ export class CanvasDisplay {
         ctx.stroke();
     }
     display() { }
+}
+function tracePath(ctx, path) {
+    ctx.moveTo(path.start[0], path.start[1]);
+    for (const seg of path.segments) {
+        if (seg.control)
+            ctx.quadraticCurveTo(seg.control[0], seg.control[1], seg.to[0], seg.to[1]);
+        else
+            ctx.lineTo(seg.to[0], seg.to[1]);
+    }
 }
 /** Adds a rounded rectangle to the current path, clamping the radius the way Adafruit GFX does. */
 function roundRectPath(ctx, x, y, w, h, r) {
@@ -177,52 +206,68 @@ export class RoboEyes {
     //*********************************************************************************************
     //  GENERAL METHODS
     //*********************************************************************************************
-    /** Pass a canvas to draw on it, or any object implementing Display. */
+    /** Pass a canvas to draw on it, or any object implementing Display. config changes any default setting. */
     constructor(target, options = {}) {
         /** "pixel" keeps the original's whole-number maths; "smooth" allows fractions for softer motion. */
-        this.precision = 'pixel';
+        this.precision = defaultConfig.modes.smooth ? 'smooth' : 'pixel';
         // For general setup - screen size and max. frame rate
         this.screenWidth = 128; // OLED display width, in pixels
         this.screenHeight = 64; // OLED display height, in pixels
-        this.frameInterval = 20; // default value for 50 frames per second (1000/50 = 20 milliseconds)
+        this.frameRate = defaultConfig.frameRate; // port: kept, so getConfig() gives back what was set
+        this.frameInterval = Math.trunc(1000 / this.frameRate); // default value for 50 frames per second (1000/50 = 20 milliseconds)
         this.fpsTimer = 0; // for timing the frames per second
         // For controlling mood types and expressions
-        this.tired = false;
-        this.angry = false;
-        this.happy = false;
-        this.curious = false; // if true, draw the outer eye larger when looking left or right
-        this.cyclops = false; // if true, draw only one eye
+        // Port: a face is composed of face states (an eye state, a mouth state, a look and toggles), which moods
+        // combine, instead of the original's tired/angry/happy flags. See config.ts.
+        this.eyeStates = structuredClone(defaultConfig.eyeStates);
+        this.mouthStates = structuredClone(defaultConfig.mouthStates);
+        this.looks = structuredClone(defaultConfig.looks);
+        this.moods = structuredClone(defaultConfig.moods);
+        this.mood = 'default'; // the mood set last
+        this.faceState = 'still'; // the face states in use now
+        this.eyeState = 'open';
+        this.mouthState = 'neutral';
+        this.look = defaultConfig.look;
+        this.toggleDefaults = { ...defaultConfig.toggles }; // each toggle when a mood says nothing about it
+        this.curious = defaultConfig.toggles.curious; // if true, draw the outer eye larger when looking left or right
+        this.curiousGrowth = defaultConfig.curious.growth; // port: how much taller the outer eye gets
+        this.curiousEdge = defaultConfig.curious.edge; // port: how close to the screen edge an eye must be to grow
+        this.cyclops = defaultConfig.modes.cyclops; // if true, draw only one eye
+        this.eyesClosed = false; // port: true while the eye state keeps both eyes closed
+        this.eyeLheld = false; // port: true while the eye state keeps the left eye closed (both, or a wink)
+        this.eyeRheld = false; // port: the same for the right eye
         this.eyeL_open = false; // left eye opened or closed?
         this.eyeR_open = false; // right eye opened or closed?
         //*********************************************************************************************
         //  Eyes Geometry
         //*********************************************************************************************
         // EYE LEFT - size and border radius
-        this.eyeLwidthDefault = 36;
-        this.eyeLheightDefault = 36;
+        this.eyeLwidthDefault = defaultConfig.eyes.left.width;
+        this.eyeLheightDefault = defaultConfig.eyes.left.height;
         this.eyeLwidthCurrent = this.eyeLwidthDefault;
-        this.eyeLheightCurrent = 1; // start with closed eye, otherwise set to eyeLheightDefault
+        this.eyeClosedHeight = defaultConfig.eyes.closedHeight; // port: how tall a closed eye stays (the original: 1)
+        this.eyeLheightCurrent = this.eyeClosedHeight; // start with closed eye, otherwise set to eyeLheightDefault
         this.eyeLwidthNext = this.eyeLwidthDefault;
         this.eyeLheightNext = this.eyeLheightDefault;
         this.eyeLheightOffset = 0;
         // Border Radius
-        this.eyeLborderRadiusDefault = 8;
+        this.eyeLborderRadiusDefault = defaultConfig.eyes.left.radius;
         this.eyeLborderRadiusCurrent = this.eyeLborderRadiusDefault;
         this.eyeLborderRadiusNext = this.eyeLborderRadiusDefault;
         // EYE RIGHT - size and border radius
-        this.eyeRwidthDefault = this.eyeLwidthDefault;
-        this.eyeRheightDefault = this.eyeLheightDefault;
+        this.eyeRwidthDefault = defaultConfig.eyes.right.width;
+        this.eyeRheightDefault = defaultConfig.eyes.right.height;
         this.eyeRwidthCurrent = this.eyeRwidthDefault;
-        this.eyeRheightCurrent = 1; // start with closed eye, otherwise set to eyeRheightDefault
+        this.eyeRheightCurrent = this.eyeClosedHeight; // start with closed eye, otherwise set to eyeRheightDefault
         this.eyeRwidthNext = this.eyeRwidthDefault;
         this.eyeRheightNext = this.eyeRheightDefault;
         this.eyeRheightOffset = 0;
         // Border Radius
-        this.eyeRborderRadiusDefault = 8;
+        this.eyeRborderRadiusDefault = defaultConfig.eyes.right.radius;
         this.eyeRborderRadiusCurrent = this.eyeRborderRadiusDefault;
         this.eyeRborderRadiusNext = this.eyeRborderRadiusDefault;
         // Space between eyes
-        this.spaceBetweenDefault = 10;
+        this.spaceBetweenDefault = defaultConfig.eyes.spacing;
         this.spaceBetweenCurrent = this.spaceBetweenDefault;
         this.spaceBetweenNext = 10;
         // EYE LEFT - Coordinates
@@ -240,72 +285,75 @@ export class RoboEyes {
         this.eyeRxNext = this.eyeRx;
         this.eyeRyNext = this.eyeRy;
         // BOTH EYES
-        // Eyelid top size
-        this.eyelidsHeightMax = Math.trunc(this.eyeLheightDefault / 2); // top eyelids max height
-        this.eyelidsTiredHeight = 0;
-        this.eyelidsTiredHeightNext = this.eyelidsTiredHeight;
-        this.eyelidsAngryHeight = 0;
-        this.eyelidsAngryHeightNext = this.eyelidsAngryHeight;
-        // Bottom happy eyelids offset
-        this.eyelidsHappyBottomOffsetMax = Math.trunc(this.eyeLheightDefault / 2) + 3;
-        this.eyelidsHappyBottomOffset = 0;
-        this.eyelidsHappyBottomOffsetNext = 0;
+        // Port: the top and bottom eyelids, in pixels, set from the eye state. They replace the original's
+        // tired, angry and happy eyelids, which are the sad, angry and happy eye states.
+        this.lids = {
+            left: { top: NO_LID, bottom: NO_LID },
+            right: { top: NO_LID, bottom: NO_LID },
+        };
         //*********************************************************************************************
         //  Mouth (not in the original)
         //*********************************************************************************************
-        this.mouth = true; // draw a mouth under the eyes
-        this.mouthThickness = 3; // line thickness in pixels
+        this.mouth = defaultConfig.modes.mouth; // draw a mouth under the eyes
+        this.mouthThickness = defaultConfig.mouth.thickness; // line thickness in pixels
+        this.mouthCurl = defaultConfig.mouth.curl; // how much of each end of the line bends, as a fraction of its length
+        this.mouthWidth = defaultConfig.mouth.width; // the face's own length, used when the mouth state does not set it
+        this.mouthMoodWidth = defaultConfig.mouth.moodWidth; // whether the mouth state sets the length
         // Space between the bottom of the eyes and the mouth, which sets how high the mouth sits
-        this.mouthGapCurrent = 6;
-        this.mouthGapNext = 6;
-        /** The mouth each mood asks for. Change these to retune the expressions. */
-        this.moodMouth = {
-            [DEFAULT]: { width: 20, left: 2, right: 2 }, // short, with a hint of a smile
-            [HAPPY]: { width: 28, left: 4, right: 4 }, // wider, corners up
-            [TIRED]: { width: 12, left: -1, right: -1 }, // short, corners slack
-            [ANGRY]: { width: 18, left: -3, right: -3 }, // corners down
-        };
+        this.mouthGapCurrent = defaultConfig.mouth.gap;
+        this.mouthGapNext = defaultConfig.mouth.gap;
         this.mouthWidthCurrent = 0; // starts closed and grows in with the eyes
-        this.mouthWidthNext = this.moodMouth[DEFAULT].width;
+        this.mouthWidthNext = this.mouthWidth;
         this.mouthLeftCurrent = 0;
-        this.mouthLeftNext = this.moodMouth[DEFAULT].left;
+        this.mouthLeftNext = 0;
         this.mouthRightCurrent = 0;
-        this.mouthRightNext = this.moodMouth[DEFAULT].right;
+        this.mouthRightNext = 0;
         //*********************************************************************************************
         //  Macro Animations
         //*********************************************************************************************
-        // Animation - horizontal flicker/shiver
+        // Animation - horizontal flicker/shiver. Port: the shake toggle.
         this.hFlicker = false;
         this.hFlickerAlternate = false;
-        this.hFlickerAmplitude = 2;
-        // Animation - vertical flicker/shiver
+        this.hFlickerAmplitude = defaultConfig.shake.amplitude;
+        // Animation - vertical flicker/shiver. Port: kept for setVFlicker(), but not a toggle and not in the config.
         this.vFlicker = false;
         this.vFlickerAlternate = false;
         this.vFlickerAmplitude = 10;
         // Animation - auto blinking
-        this.autoblinker = false; // activate auto blink animation
-        this.blinkInterval = 1; // basic interval between each blink in full seconds
-        this.blinkIntervalVariation = 4; // interval variaton range in full seconds, random number inside of given range will be add to the basic blinkInterval, set to 0 for no variation
+        this.autoblinker = defaultConfig.toggles.autoblink; // activate auto blink animation. Port: a toggle, so moods set it
+        this.blinkInterval = defaultConfig.blink.interval; // basic interval between each blink in full seconds
+        this.blinkSpeed = defaultConfig.blink.speed; // port: how much of the remaining way an eye goes each frame while blinking
+        this.blinkIntervalVariation = defaultConfig.blink.variation; // interval variaton range in full seconds, random number inside of given range will be add to the basic blinkInterval, set to 0 for no variation
         this.blinktimer = 0; // for organising eyeblink timing
-        // Animation - idle mode: eyes looking in random directions
+        // Animation - idle mode: eyes looking in random directions. Port: true while the look wanders.
         this.idle = false;
-        this.idleInterval = 1; // basic interval between each eye repositioning in full seconds
-        this.idleIntervalVariation = 3; // interval variaton range in full seconds, random number inside of given range will be add to the basic idleInterval, set to 0 for no variation
+        this.idleInterval = defaultConfig.wander.interval; // basic interval between each eye repositioning in full seconds
+        this.idleIntervalVariation = defaultConfig.wander.variation; // interval variaton range in full seconds, random number inside of given range will be add to the basic idleInterval, set to 0 for no variation
         this.idleAnimationTimer = 0; // for organising eyeblink timing
-        // Animation - eyes confused: eyes shaking left and right
-        this.confused = false;
-        this.confusedAnimationTimer = 0;
-        this.confusedAnimationDuration = 500;
-        this.confusedToggle = true;
-        this.confusedAmplitude = 20; // port: how far the eyes swing to each side
+        // Port: a dart look - eyes glancing from side to side
+        this.darting = false;
+        this.dartSide = 1; // the side of the last glance: -1 left, 1 right (so the first glance is to the left)
+        this.dartTimer = 0; // when the next glance is due
+        // Animation - shake head (the original's "confused"): eyes and mouth shaking left and right
+        this.shakeHead = false;
+        this.shakeHeadAnimationTimer = 0;
+        this.shakeHeadAnimationDuration = defaultConfig.shakeHead.durationMs;
+        this.shakeHeadToggle = true;
+        this.shakeHeadAmplitude = defaultConfig.shakeHead.amplitude; // port: how far the face swings to each side
+        // Port: animation - nod head: eyes and mouth swinging down and up
+        this.nod = false;
+        this.nodAnimationTimer = 0;
+        this.nodAnimationDuration = defaultConfig.nod.durationMs;
+        this.nodToggle = true;
+        this.nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
         // Animation - eyes laughing: eyes shaking up and down
         this.laugh = false;
         this.laughAnimationTimer = 0;
-        this.laughAnimationDuration = 500;
+        this.laughAnimationDuration = defaultConfig.laugh.durationMs;
         this.laughToggle = true;
-        this.laughAmplitude = 5; // port: how far the eyes swing up and down
-        this.laughMouthAmplitude = 2; // port: how far the mouth bounces, on its own, while laughing
-        // Port: the laugh and confused swings, drawn on top of the eye and mouth positions
+        this.laughAmplitude = defaultConfig.laugh.amplitude; // port: how far the eyes swing up and down
+        this.laughMouthAmplitude = defaultConfig.laugh.mouthAmplitude; // port: how far the mouth bounces, on its own, while laughing
+        // Port: the laugh, shake and nod swings, drawn on top of the eye and mouth positions
         this.shakeX = 0;
         this.shakeXNext = 0;
         this.shakeY = 0;
@@ -338,8 +386,121 @@ export class RoboEyes {
         this.sweat3Width = 1;
         this.loop = 0;
         this.display = 'getContext' in target ? new CanvasDisplay(target) : target;
+        if (options.config)
+            this.configure(options.config);
         if (options.precision)
             this.precision = options.precision;
+        this.setMood(this.mood);
+    }
+    /** Port: every setting as one object, the shape configure() takes. */
+    getConfig() {
+        return {
+            frameRate: this.frameRate,
+            eyes: {
+                left: { width: this.eyeLwidthDefault, height: this.eyeLheightDefault, radius: this.eyeLborderRadiusDefault },
+                right: { width: this.eyeRwidthDefault, height: this.eyeRheightDefault, radius: this.eyeRborderRadiusDefault },
+                spacing: this.spaceBetweenDefault,
+                closedHeight: this.eyeClosedHeight,
+            },
+            mouth: {
+                gap: this.mouthGapNext, thickness: this.mouthThickness, curl: this.mouthCurl,
+                width: this.mouthWidth, moodWidth: this.mouthMoodWidth,
+            },
+            blink: { interval: this.blinkInterval, variation: this.blinkIntervalVariation, speed: this.blinkSpeed },
+            wander: { interval: this.idleInterval, variation: this.idleIntervalVariation },
+            curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
+            laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
+            shakeHead: { amplitude: this.shakeHeadAmplitude, durationMs: this.shakeHeadAnimationDuration },
+            nod: { amplitude: this.nodAmplitude, durationMs: this.nodAnimationDuration },
+            shake: { amplitude: this.hFlickerAmplitude },
+            modes: { cyclops: this.cyclops, mouth: this.mouth, smooth: this.precision === 'smooth' },
+            look: this.look,
+            toggles: { ...this.toggleDefaults },
+            eyeStates: structuredClone(this.eyeStates),
+            mouthStates: structuredClone(this.mouthStates),
+            looks: structuredClone(this.looks),
+            moods: structuredClone(this.moods),
+        };
+    }
+    /** Port: change any settings at once. What the patch leaves out keeps its current value. */
+    configure(patch) {
+        const c = mergeConfig(this.getConfig(), patch);
+        const l = c.eyes.left, r = c.eyes.right;
+        this.setFramerate(c.frameRate);
+        // Only what changed, so an eye that is closed right now stays closed
+        if (l.width !== this.eyeLwidthDefault || r.width !== this.eyeRwidthDefault)
+            this.setWidth(l.width, r.width);
+        if (l.height !== this.eyeLheightDefault || r.height !== this.eyeRheightDefault)
+            this.setHeight(l.height, r.height);
+        if (l.radius !== this.eyeLborderRadiusDefault || r.radius !== this.eyeRborderRadiusDefault)
+            this.setBorderradius(l.radius, r.radius);
+        if (c.eyes.spacing !== this.spaceBetweenDefault)
+            this.setSpacebetween(c.eyes.spacing);
+        // An eye that is closing or closed takes the new height too
+        const closed = this.eyeClosedHeight;
+        this.eyeClosedHeight = Math.max(0, c.eyes.closedHeight);
+        if (this.eyeLheightNext === closed)
+            this.eyeLheightNext = this.eyeClosedHeight;
+        if (this.eyeRheightNext === closed)
+            this.eyeRheightNext = this.eyeClosedHeight;
+        this.setMouthGap(c.mouth.gap);
+        this.mouthThickness = c.mouth.thickness;
+        this.mouthCurl = c.mouth.curl;
+        this.mouthWidth = Math.max(0, c.mouth.width);
+        this.mouthMoodWidth = c.mouth.moodWidth;
+        this.blinkInterval = c.blink.interval;
+        this.blinkIntervalVariation = c.blink.variation;
+        this.blinkSpeed = Math.max(0.05, Math.min(1, c.blink.speed));
+        this.idleInterval = c.wander.interval;
+        this.idleIntervalVariation = c.wander.variation;
+        this.curiousGrowth = c.curious.growth;
+        this.curiousEdge = c.curious.edge;
+        this.laughAmplitude = c.laugh.amplitude;
+        this.laughMouthAmplitude = c.laugh.mouthAmplitude;
+        this.laughAnimationDuration = c.laugh.durationMs;
+        this.shakeHeadAmplitude = c.shakeHead.amplitude;
+        this.shakeHeadAnimationDuration = c.shakeHead.durationMs;
+        this.nodAmplitude = c.nod.amplitude;
+        this.nodAnimationDuration = c.nod.durationMs;
+        this.hFlickerAmplitude = c.shake.amplitude;
+        this.cyclops = c.modes.cyclops;
+        this.mouth = c.modes.mouth;
+        this.precision = c.modes.smooth ? 'smooth' : 'pixel';
+        this.toggleDefaults = { ...c.toggles };
+        // Each state gets whatever it leaves out from a level, open, unbent one
+        this.eyeStates = {};
+        for (const [name, state] of Object.entries(c.eyeStates))
+            this.eyeStates[name] = eyesWith(OPEN_EYES, state);
+        this.mouthStates = {};
+        for (const [name, state] of Object.entries(c.mouthStates)) {
+            this.mouthStates[name] = { left: state.left ?? 0, right: state.right ?? 0 };
+            if (state.width !== undefined && state.width !== null)
+                this.mouthStates[name].width = state.width;
+            if (state.ownWidth)
+                this.mouthStates[name].ownWidth = true;
+            if (state.group)
+                this.mouthStates[name].group = state.group;
+        }
+        this.looks = {};
+        for (const [name, look] of Object.entries(c.looks)) {
+            this.looks[name] = { x: look.x ?? 0.5, y: look.y ?? 0.5 };
+            if (look.group)
+                this.looks[name].group = look.group;
+            if (look.wander)
+                this.looks[name].wander = true;
+            // dart: true (as the demo's checkbox sends) gets the default reach and hold
+            if (look.dart)
+                this.looks[name].dart = { reach: 0.5, holdMs: 600, ...(typeof look.dart === 'object' ? withoutNulls(look.dart) : {}) };
+        }
+        this.moods = {};
+        for (const [name, mood] of Object.entries(c.moods))
+            this.moods[name] = withoutNulls(mood);
+        if (!this.moods.default)
+            this.moods.default = {}; // setMood() falls back to it
+        // The face states in use stay in use, now with their new values
+        this.applyEyes(this.eyeState, this.eyesOverride);
+        this.applyMouth(this.mouthState, this.mouthOverride);
+        this.setLook(c.look);
     }
     /** Whole numbers in "pixel" precision, like the original's int and byte maths; unchanged in "smooth". */
     int(value) {
@@ -352,15 +513,17 @@ export class RoboEyes {
         this.display.setSize(width, height);
         this.display.clearDisplay(); // clear the display buffer
         this.display.display(); // show empty screen
-        this.eyeLheightCurrent = 1; // start with closed eyes
-        this.eyeRheightCurrent = 1; // start with closed eyes
+        this.eyeLheightCurrent = this.eyeClosedHeight; // start with closed eyes
+        this.eyeRheightCurrent = this.eyeClosedHeight; // start with closed eyes
         this.setFramerate(frameRate); // calculate frame interval based on defined frameRate
-        // Port: centre the eyes for the new screen size straight away.
-        this.setPosition(DEFAULT);
+        // Port: centre the eyes for the new screen size straight away, then take up the look.
+        this.eyeLxNext = this.int(this.getScreenConstraint_X() / 2);
+        this.eyeLyNext = this.int(this.getScreenConstraint_Y() / 2);
         this.eyeLx = this.eyeLxNext;
         this.eyeLy = this.eyeLyNext;
         this.eyeRx = this.eyeLx + this.eyeLwidthCurrent + this.spaceBetweenCurrent;
         this.eyeRy = this.eyeLy;
+        this.setLook(this.look);
     }
     update() {
         // Limit drawing updates to defined max framerate
@@ -387,6 +550,7 @@ export class RoboEyes {
     //*********************************************************************************************
     // Calculate frame interval based on defined frameRate
     setFramerate(fps) {
+        this.frameRate = fps;
         this.frameInterval = Math.trunc(1000 / fps);
     }
     // Set color values. Any CSS colour; 'transparent' background lets the page show through.
@@ -420,86 +584,108 @@ export class RoboEyes {
         this.spaceBetweenNext = space;
         this.spaceBetweenDefault = space;
     }
-    // Set mood expression. Port: also sets the mouth that goes with it (see moodMouth).
+    // Set mood expression. Port: a mood constant (SAD...) or the name of any entry in moods. The mood picks the face
+    // states: its eye and mouth states (open and neutral if it leaves them out, with its override), its toggles
+    // (their defaults if it leaves them out) and its look (the look stays as it is if the mood has none).
     setMood(mood) {
-        switch (mood) {
-            case TIRED:
-                this.tired = true;
-                this.angry = false;
-                this.happy = false;
-                break;
-            case ANGRY:
-                this.tired = false;
-                this.angry = true;
-                this.happy = false;
-                break;
-            case HAPPY:
-                this.tired = false;
-                this.angry = false;
-                this.happy = true;
-                break;
-            default:
-                this.tired = false;
-                this.angry = false;
-                this.happy = false;
-                break;
+        const name = typeof mood === 'number' ? MOOD_NAMES[mood] : mood;
+        this.mood = name in this.moods ? name : 'default';
+        const m = this.moods[this.mood];
+        for (const [key, field] of Object.entries(TOGGLES)) {
+            this[field] = m[key] ?? this.toggleDefaults[key];
         }
-        const shape = this.moodMouth[mood] ?? this.moodMouth[DEFAULT];
-        this.mouthWidthNext = shape.width;
+        this.setFace(m.face ?? 'still');
+        this.applyEyes(m.eyes ?? 'open', m.override?.eyes ?? undefined);
+        this.applyMouth(m.mouth ?? 'neutral', m.override?.mouth ?? undefined);
+        if (m.look)
+            this.setLook(m.look);
+    }
+    // Port: set what the whole face does (see FACE_STATES): hold still, or keep shaking its head or nodding.
+    // Changing it stops the swing straight away (a one-shot anim_shakeHead() or anim_nod() still runs its time).
+    setFace(name) {
+        if (FACE_STATES.includes(name))
+            this.faceState = name;
+    }
+    // Port: set the eye state by name (see eyeStates), whatever the mood
+    setEyes(name) {
+        this.applyEyes(name);
+    }
+    // Port: set the mouth state by name (see mouthStates), whatever the mood
+    setMouthState(name) {
+        this.applyMouth(name);
+    }
+    // Port: set the look by name (see looks): a place for the eyes to go, or wander
+    setLook(name) {
+        const look = this.looks[name];
+        if (!look)
+            return;
+        this.look = name;
+        if (look.wander) {
+            if (!this.idle)
+                this.idleAnimationTimer = 0; // move on straight away
+            this.idle = true;
+            this.darting = false;
+            return;
+        }
+        this.idle = false;
+        if (look.dart) {
+            if (!this.darting)
+                this.dartTimer = 0; // first glance straight away; drawEyes() places the eyes
+            this.darting = true;
+            return;
+        }
+        this.darting = false;
+        const fraction = (v) => Math.max(0, Math.min(1, v));
+        this.eyeLxNext = this.int(this.getScreenConstraint_X() * fraction(look.x));
+        this.eyeLyNext = this.int(this.getScreenConstraint_Y() * fraction(look.y));
+    }
+    /** Port: the eye state in use, with the mood's changes to it. */
+    currentEyes() {
+        return eyesWith(this.eyeStates[this.eyeState] ?? OPEN_EYES, this.eyesOverride);
+    }
+    /** Port: the mouth state in use, with the mood's changes to it. */
+    currentMouth() {
+        return { ...(this.mouthStates[this.mouthState] ?? { left: 0, right: 0 }), ...withoutNulls(this.mouthOverride) };
+    }
+    // The eyelids follow the eye state every frame; closing and opening happen here
+    applyEyes(name, override) {
+        this.eyeState = name;
+        this.eyesOverride = override;
+        const closed = this.currentEyes().closed;
+        const left = closed === true || closed === 'left', right = closed === true || closed === 'right';
+        // Close or open only the eyes that change, so an open eye doesn't blink on the way
+        if (left !== this.eyeLheld) {
+            if (left)
+                this.close(true, false);
+            else
+                this.open(true, false);
+        }
+        if (right !== this.eyeRheld) {
+            if (right)
+                this.close(false, true);
+            else
+                this.open(false, true);
+        }
+        this.eyeLheld = left;
+        this.eyeRheld = right;
+        this.eyesClosed = left && right;
+    }
+    // The mouth is set here, so setMouthWidth() and setMouthCorners() can still change it afterwards
+    applyMouth(name, override) {
+        this.mouthState = name;
+        this.mouthOverride = override;
+        const shape = this.currentMouth();
+        const ownWidth = (this.mouthMoodWidth || shape.ownWidth) && shape.width !== undefined;
+        this.mouthWidthNext = ownWidth ? shape.width : this.mouthWidth;
         this.mouthLeftNext = shape.left;
         this.mouthRightNext = shape.right;
     }
-    // Set predefined position
+    // Set predefined position. Port: each position is a look (center, N, NE ...), so this is setLook() by another name.
     setPosition(position) {
-        switch (position) {
-            case N:
-                // North, top center
-                this.eyeLxNext = this.int(this.getScreenConstraint_X() / 2);
-                this.eyeLyNext = 0;
-                break;
-            case NE:
-                // North-east, top right
-                this.eyeLxNext = this.getScreenConstraint_X();
-                this.eyeLyNext = 0;
-                break;
-            case E:
-                // East, middle right
-                this.eyeLxNext = this.getScreenConstraint_X();
-                this.eyeLyNext = this.int(this.getScreenConstraint_Y() / 2);
-                break;
-            case SE:
-                // South-east, bottom right
-                this.eyeLxNext = this.getScreenConstraint_X();
-                this.eyeLyNext = this.getScreenConstraint_Y();
-                break;
-            case S:
-                // South, bottom center
-                this.eyeLxNext = this.int(this.getScreenConstraint_X() / 2);
-                this.eyeLyNext = this.getScreenConstraint_Y();
-                break;
-            case SW:
-                // South-west, bottom left
-                this.eyeLxNext = 0;
-                this.eyeLyNext = this.getScreenConstraint_Y();
-                break;
-            case W:
-                // West, middle left
-                this.eyeLxNext = 0;
-                this.eyeLyNext = this.int(this.getScreenConstraint_Y() / 2);
-                break;
-            case NW:
-                // North-west, top left
-                this.eyeLxNext = 0;
-                this.eyeLyNext = 0;
-                break;
-            default:
-                // Middle center
-                this.eyeLxNext = this.int(this.getScreenConstraint_X() / 2);
-                this.eyeLyNext = this.int(this.getScreenConstraint_Y() / 2);
-                break;
-        }
+        this.setLook(POSITION_LOOKS[position] ?? 'center');
     }
     // Set automated eye blinking, minimal blink interval in full seconds and blink interval variation range in full seconds
+    // Port: auto blink is a toggle, so the next mood sets it again.
     setAutoblinker(active, interval, variation) {
         this.autoblinker = active;
         if (interval !== undefined)
@@ -508,14 +694,19 @@ export class RoboEyes {
             this.blinkIntervalVariation = variation;
     }
     // Set idle mode - automated eye repositioning, minimal time interval in full seconds and time interval variation range in full seconds
+    // Port: idle mode is the wander look. Turning it off looks to the center.
     setIdleMode(active, interval, variation) {
-        this.idle = active;
+        if (active)
+            this.setLook('wander');
+        else if (this.idle)
+            this.setLook('center');
         if (interval !== undefined)
             this.idleInterval = interval;
         if (variation !== undefined)
             this.idleIntervalVariation = variation;
     }
-    // Set curious mode - the respectively outer eye gets larger when looking left or right
+    // Set curious mode - the respectively outer eye gets larger when looking left or right.
+    // Port: a toggle, so the next mood sets it again.
     setCuriosity(curiousBit) {
         this.curious = curiousBit;
     }
@@ -523,24 +714,30 @@ export class RoboEyes {
     setCyclops(cyclopsBit) {
         this.cyclops = cyclopsBit;
     }
-    // Set horizontal flickering (displacing eyes left/right)
-    setHFlicker(flickerBit, amplitude) {
-        this.hFlicker = flickerBit; // turn flicker on or off
+    // Port: the shake toggle - the eyes jitter left and right every frame. The next mood sets it again.
+    setShake(shakeBit, amplitude) {
+        this.hFlicker = shakeBit;
         if (amplitude !== undefined)
-            this.hFlickerAmplitude = amplitude; // define amplitude of flickering in pixels
+            this.hFlickerAmplitude = amplitude; // in pixels
     }
-    // Set vertical flickering (displacing eyes up/down)
+    // Set horizontal flickering (displacing eyes left/right). Port: the shake toggle, so this is setShake().
+    setHFlicker(flickerBit, amplitude) {
+        this.setShake(flickerBit, amplitude);
+    }
+    // Set vertical flickering (displacing eyes up/down). Port: not a toggle, so no mood changes it.
     setVFlicker(flickerBit, amplitude) {
         this.vFlicker = flickerBit; // turn flicker on or off
         if (amplitude !== undefined)
             this.vFlickerAmplitude = amplitude; // define amplitude of flickering in pixels
     }
+    // Port: a toggle, so the next mood sets it again.
     setSweat(sweatBit) {
         this.sweat = sweatBit; // turn sweat on or off
     }
     // Port: mouth on or off. Off keeps the original's layout exactly; on reserves a strip under the eyes.
     setMouth(mouthBit) {
         this.mouth = mouthBit;
+        this.setLook(this.look); // the eyes have more or less room now
     }
     // Port: length of the mouth line in pixels. 0 shrinks it away completely.
     setMouthWidth(width) {
@@ -579,11 +776,11 @@ export class RoboEyes {
     // Close eye(s). With no arguments, both eyes.
     close(left = true, right = true) {
         if (left) {
-            this.eyeLheightNext = 1; // closing left eye
+            this.eyeLheightNext = this.eyeClosedHeight; // closing left eye
             this.eyeL_open = false; // left eye not opened (=closed)
         }
         if (right) {
-            this.eyeRheightNext = 1; // closing right eye
+            this.eyeRheightNext = this.eyeClosedHeight; // closing right eye
             this.eyeR_open = false; // right eye not opened (=closed)
         }
     }
@@ -602,9 +799,17 @@ export class RoboEyes {
     //*********************************************************************************************
     //  MACRO ANIMATION METHODS
     //*********************************************************************************************
-    // Play confused animation - one shot animation of eyes shaking left and right
+    // Play shake head animation - one shot animation of eyes and mouth shaking left and right
+    anim_shakeHead() {
+        this.shakeHead = true;
+    }
+    // The original's name for anim_shakeHead()
     anim_confused() {
-        this.confused = true;
+        this.anim_shakeHead();
+    }
+    // Port: play nod animation - one shot animation of eyes and mouth swinging down and up
+    anim_nod() {
+        this.nod = true;
     }
     // Play laugh animation - one shot animation of eyes shaking up and down
     anim_laugh() {
@@ -618,17 +823,17 @@ export class RoboEyes {
         //// PRE-CALCULATIONS - EYE SIZES AND VALUES FOR ANIMATION TWEENINGS ////
         // Vertical size offset for larger eyes when looking left or right (curious gaze)
         if (this.curious) {
-            if (this.eyeLxNext <= 10) {
-                this.eyeLheightOffset = 8;
+            if (this.eyeLxNext <= this.curiousEdge) {
+                this.eyeLheightOffset = this.curiousGrowth;
             }
-            else if (this.eyeLxNext >= (this.getScreenConstraint_X() - 10) && this.cyclops) {
-                this.eyeLheightOffset = 8;
+            else if (this.eyeLxNext >= (this.getScreenConstraint_X() - this.curiousEdge) && this.cyclops) {
+                this.eyeLheightOffset = this.curiousGrowth;
             }
             else {
                 this.eyeLheightOffset = 0;
             } // left eye
-            if (this.eyeRxNext >= this.screenWidth - this.eyeRwidthCurrent - 10) {
-                this.eyeRheightOffset = 8;
+            if (this.eyeRxNext >= this.screenWidth - this.eyeRwidthCurrent - this.curiousEdge) {
+                this.eyeRheightOffset = this.curiousGrowth;
             }
             else {
                 this.eyeRheightOffset = 0;
@@ -639,21 +844,22 @@ export class RoboEyes {
             this.eyeRheightOffset = 0; // reset height offset for right eye
         }
         // Left eye height
-        this.eyeLheightCurrent = int((this.eyeLheightCurrent + this.eyeLheightNext + this.eyeLheightOffset) / 2);
+        // Port: at the blink speed (halfway each frame by default, as the original)
+        this.eyeLheightCurrent = this.blinkEase(this.eyeLheightCurrent, this.eyeLheightNext + this.eyeLheightOffset);
         this.eyeLy += int((this.eyeLheightDefault - this.eyeLheightCurrent) / 2); // vertical centering of eye when closing
         this.eyeLy -= int(this.eyeLheightOffset / 2);
         // Right eye height
-        this.eyeRheightCurrent = int((this.eyeRheightCurrent + this.eyeRheightNext + this.eyeRheightOffset) / 2);
+        this.eyeRheightCurrent = this.blinkEase(this.eyeRheightCurrent, this.eyeRheightNext + this.eyeRheightOffset);
         this.eyeRy += int((this.eyeRheightDefault - this.eyeRheightCurrent) / 2); // vertical centering of eye when closing
         this.eyeRy -= int(this.eyeRheightOffset / 2);
         // Open eyes again after closing them
         if (this.eyeL_open) {
-            if (this.eyeLheightCurrent <= 1 + this.eyeLheightOffset) {
+            if (this.eyeLheightCurrent <= this.eyeClosedHeight + this.eyeLheightOffset) {
                 this.eyeLheightNext = this.eyeLheightDefault;
             }
         }
         if (this.eyeR_open) {
-            if (this.eyeRheightCurrent <= 1 + this.eyeRheightOffset) {
+            if (this.eyeRheightCurrent <= this.eyeClosedHeight + this.eyeRheightOffset) {
                 this.eyeRheightNext = this.eyeRheightDefault;
             }
         }
@@ -681,15 +887,20 @@ export class RoboEyes {
         this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext);
         this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext);
         //// APPLYING MACRO ANIMATIONS ////
-        if (this.autoblinker) {
+        if (this.autoblinker && !this.eyesClosed) {
             if (millis() >= this.blinktimer) {
-                this.blink();
+                this.blink(!this.eyeLheld, !this.eyeRheld); // port: a winking eye stays closed
                 this.blinktimer = millis() + (this.blinkInterval * 1000) + (random(this.blinkIntervalVariation) * 1000); // calculate next time for blinking
             }
         }
         // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
+        // Port: a face state that shakes or nods starts the swing, which then keeps going until the face state changes
+        if (this.faceState === 'shakeHead' && !this.shakeHead)
+            this.shakeHead = true;
+        if (this.faceState === 'nod' && !this.nod)
+            this.nod = true;
         if (this.laugh) {
             if (this.laughToggle) {
                 this.shakeYNext = -this.laughAmplitude;
@@ -704,39 +915,64 @@ export class RoboEyes {
                 this.laugh = false;
             }
         }
-        // Confused - eyes shaking left and right for the duration defined by confusedAnimationDuration (default = 500ms)
-        // Port: instead of the original's per-frame horizontal flicker, the eyes swing at the pace of a blink,
-        // and the mouth stays where it is.
-        if (this.confused) {
-            if (this.confusedToggle) {
-                this.shakeXNext = -this.confusedAmplitude;
-                this.confusedAnimationTimer = millis();
-                this.confusedToggle = false;
+        // Shake head - eyes shaking left and right for the duration defined by shakeHeadAnimationDuration (default = 500ms)
+        // Port: instead of the original's per-frame horizontal flicker, the face swings at the pace of a blink,
+        // and the mouth moves with the eyes.
+        if (this.shakeHead) {
+            if (this.shakeHeadToggle) {
+                this.shakeXNext = -this.shakeHeadAmplitude;
+                this.shakeHeadAnimationTimer = millis();
+                this.shakeHeadToggle = false;
             }
-            else if (millis() >= this.confusedAnimationTimer + this.confusedAnimationDuration) {
+            else if (millis() >= this.shakeHeadAnimationTimer + this.shakeHeadAnimationDuration && this.faceState !== 'shakeHead') {
                 this.shakeXNext = 0;
-                this.confusedToggle = true;
-                this.confused = false;
+                this.shakeHeadToggle = true;
+                this.shakeHead = false;
+            }
+        }
+        // Port: nod - the face swings down and up for nodAnimationDuration, the mouth moving with the eyes
+        if (this.nod) {
+            if (this.nodToggle) {
+                this.shakeYNext = this.nodAmplitude;
+                this.mouthShakeYNext = this.nodAmplitude;
+                this.nodAnimationTimer = millis();
+                this.nodToggle = false;
+            }
+            else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && this.faceState !== 'nod') {
+                this.shakeYNext = 0;
+                this.mouthShakeYNext = 0;
+                this.nodToggle = true;
+                this.nod = false;
             }
         }
         // Port: each swing eases like a blink, and turns back once it arrives
-        this.shakeX = this.ease(this.shakeX, this.shakeXNext);
-        if (this.confused && this.shakeX === this.shakeXNext)
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.blinkSpeed);
+        if (this.shakeHead && this.shakeX === this.shakeXNext)
             this.shakeXNext = -this.shakeXNext;
-        this.shakeY = this.ease(this.shakeY, this.shakeYNext);
-        // The mouth turns back with the eyes, so it bounces at the same pace, but the other way and by its own amount
-        if (this.laugh && this.shakeY === this.shakeYNext) {
+        this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.blinkSpeed);
+        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, this.blinkSpeed);
+        // The mouth turns back with the eyes, so it moves at the same pace: with them when nodding, and the other
+        // way, by its own amount, when laughing
+        if ((this.laugh || this.nod) && this.shakeY === this.shakeYNext) {
             this.shakeYNext = -this.shakeYNext;
             this.mouthShakeYNext = -this.mouthShakeYNext;
         }
-        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext);
         // Idle - eyes moving to random positions on screen
-        if (this.idle) {
+        if (this.idle && !this.eyesClosed) {
             if (millis() >= this.idleAnimationTimer) {
                 this.eyeLxNext = random(this.getScreenConstraint_X());
                 this.eyeLyNext = random(this.getScreenConstraint_Y());
                 this.idleAnimationTimer = millis() + (this.idleInterval * 1000) + (random(this.idleIntervalVariation) * 1000); // calculate next time for eyes repositioning
             }
+        }
+        // Port: a dart look glances to the other side once each glance has been held for its time
+        const dartLook = this.darting ? this.looks[this.look] : undefined;
+        if (dartLook?.dart && !this.eyesClosed && millis() >= this.dartTimer) {
+            const fraction = (v) => Math.max(0, Math.min(1, v));
+            this.dartSide = -this.dartSide;
+            this.eyeLxNext = this.int(this.getScreenConstraint_X() * fraction(dartLook.x + this.dartSide * dartLook.dart.reach));
+            this.eyeLyNext = this.int(this.getScreenConstraint_Y() * fraction(dartLook.y));
+            this.dartTimer = millis() + dartLook.dart.holdMs;
         }
         // Adding offsets for horizontal flickering/shivering
         if (this.hFlicker) {
@@ -771,70 +1007,35 @@ export class RoboEyes {
         //// ACTUAL DRAWINGS ////
         const d = this.display;
         d.clearDisplay(); // start with a blank screen
-        // Prepare mood type transitions
-        if (this.tired) {
-            this.eyelidsTiredHeightNext = int(this.eyeLheightCurrent / 2);
-            this.eyelidsAngryHeightNext = 0;
+        // Prepare mood type transitions. Port: the lids come from the mood (the original's tired, angry
+        // and happy eyelids are those moods' lid shapes), scaled to the eye's height as it is right now.
+        // Each eye's lids: the shared ones with that eye's own changes, sized to that eye (in cyclops mode, the one
+        // eye's halves use the left and right lids, both sized to it)
+        const eyes = this.currentEyes();
+        for (const side of ['left', 'right']) {
+            const own = eyes[side];
+            const h = side === 'right' && !this.cyclops ? this.eyeRheightCurrent : this.eyeLheightCurrent;
+            this.lids[side] = {
+                top: this.easeLid(this.lids[side].top, { ...eyes.top, ...own?.top }, h),
+                bottom: this.easeLid(this.lids[side].bottom, { ...eyes.bottom, ...own?.bottom }, h),
+            };
         }
-        else {
-            this.eyelidsTiredHeightNext = 0;
-        }
-        if (this.angry) {
-            this.eyelidsAngryHeightNext = int(this.eyeLheightCurrent / 2);
-            this.eyelidsTiredHeightNext = 0;
-        }
-        else {
-            this.eyelidsAngryHeightNext = 0;
-        }
-        if (this.happy) {
-            this.eyelidsHappyBottomOffsetNext = int(this.eyeLheightCurrent / 2);
-        }
-        else {
-            this.eyelidsHappyBottomOffsetNext = 0;
-        }
-        // Eyelid sizes ease towards their targets
-        this.eyelidsTiredHeight = int((this.eyelidsTiredHeight + this.eyelidsTiredHeightNext) / 2);
-        this.eyelidsAngryHeight = int((this.eyelidsAngryHeight + this.eyelidsAngryHeightNext) / 2);
-        this.eyelidsHappyBottomOffset = int((this.eyelidsHappyBottomOffset + this.eyelidsHappyBottomOffsetNext) / 2);
         // The original draws each eye, then paints the eyelids over it in the background colour.
-        // Here the same eyelid shapes are cut out of the eye instead.
-        // Port: the laugh and confused swings move the drawn eyes only, so the mouth keeps its own place.
+        // Here the eyelid shapes are cut out of the eye instead.
+        // Port: the swings move the drawn eyes only; drawMouth() adds the mouth's own share.
         const lx = this.eyeLx + this.shakeX, ly = this.eyeLy + this.shakeY, lw = this.eyeLwidthCurrent, lh = this.eyeLheightCurrent;
         const rx = this.eyeRx + this.shakeX, ry = this.eyeRy + this.shakeY, rw = this.eyeRwidthCurrent, rh = this.eyeRheightCurrent;
-        const tiredH = this.eyelidsTiredHeight, angryH = this.eyelidsAngryHeight, happyH = this.eyelidsHappyBottomOffset;
         const leftCuts = [];
         const rightCuts = [];
-        const tri = (a, b, c) => ({ kind: 'triangle', points: [a, b, c] });
-        // Tired top eyelids
-        if (tiredH > 0) {
-            if (!this.cyclops) {
-                leftCuts.push(tri([lx, ly - 1], [lx + lw, ly - 1], [lx, ly + tiredH - 1])); // left eye
-                rightCuts.push(tri([rx, ry - 1], [rx + rw, ry - 1], [rx + rw, ry + tiredH - 1])); // right eye
-            }
-            else {
-                // Cyclops tired eyelids
-                leftCuts.push(tri([lx, ly - 1], [lx + int(lw / 2), ly - 1], [lx, ly + tiredH - 1])); // left eyelid half
-                leftCuts.push(tri([lx + int(lw / 2), ly - 1], [lx + lw, ly - 1], [lx + lw, ly + tiredH - 1])); // right eyelid half
-            }
+        if (!this.cyclops) {
+            // Each eye's outer corner faces its own side of the screen
+            leftCuts.push(...this.lidCuts(lx + lw, lx, ly, lh, this.lids.left));
+            rightCuts.push(...this.lidCuts(rx, rx + rw, ry, rh, this.lids.right));
         }
-        // Angry top eyelids
-        if (angryH > 0) {
-            if (!this.cyclops) {
-                leftCuts.push(tri([lx, ly - 1], [lx + lw, ly - 1], [lx + lw, ly + angryH - 1])); // left eye
-                rightCuts.push(tri([rx, ry - 1], [rx + rw, ry - 1], [rx, ry + angryH - 1])); // right eye
-            }
-            else {
-                // Cyclops angry eyelids
-                leftCuts.push(tri([lx, ly - 1], [lx + int(lw / 2), ly - 1], [lx + int(lw / 2), ly + angryH - 1])); // left eyelid half
-                leftCuts.push(tri([lx + int(lw / 2), ly - 1], [lx + lw, ly - 1], [lx + int(lw / 2), ly + angryH - 1])); // right eyelid half
-            }
-        }
-        // Happy bottom eyelids
-        if (happyH > 0) {
-            leftCuts.push({ kind: 'roundRect', x: lx - 1, y: (ly + lh) - happyH + 1, w: lw + 2, h: this.eyeLheightDefault, r: this.eyeLborderRadiusCurrent }); // left eye
-            if (!this.cyclops) {
-                rightCuts.push({ kind: 'roundRect', x: rx - 1, y: (ry + rh) - happyH + 1, w: rw + 2, h: this.eyeRheightDefault, r: this.eyeRborderRadiusCurrent }); // right eye
-            }
+        else {
+            // Cyclops: one lid per half of the eye, both with their inner corner in the middle
+            const mid = lx + int(lw / 2);
+            leftCuts.push(...this.lidCuts(mid, lx, ly, lh, this.lids.left), ...this.lidCuts(mid, lx + lw, ly, lh, this.lids.right));
         }
         // Draw basic eye rectangles, with their eyelids cut out
         d.fillRoundRect(lx, ly, lw, lh, this.eyeLborderRadiusCurrent, leftCuts); // left eye
@@ -914,9 +1115,68 @@ export class RoboEyes {
     //*********************************************************************************************
     //  MOUTH (port addition)
     //*********************************************************************************************
+    /** A lid in pixels for an eye h tall, eased like the original's eyelids. */
+    easeLid(current, shape, h) {
+        const int = (v) => this.int(v);
+        const angle = Math.max(-1, Math.min(1, shape.angle));
+        // A positive curve takes the middle further in; a negative one takes the corners further in instead, and the
+        // bow brings the middle back to where it was
+        const corners = h * Math.max(0, -shape.curve);
+        const next = {
+            inner: int(h * shape.height * Math.min(1, 1 - angle) + corners),
+            outer: int(h * shape.height * Math.min(1, 1 + angle) + corners),
+            bow: int(h * shape.curve),
+        };
+        return {
+            inner: int((current.inner + next.inner) / 2),
+            outer: int((current.outer + next.outer) / 2),
+            bow: int((current.bow + next.bow) / 2),
+        };
+    }
+    /**
+     * The cut-outs for an eye's top and bottom lids, between its inner and outer edge (x positions,
+     * either way round). A fully tilted lid with no curve is exactly the original's tired or angry
+     * triangle.
+     */
+    lidCuts(innerX, outerX, y, h, lids) {
+        const cuts = [];
+        const midX = (innerX + outerX) / 2;
+        // Each lid: its edge runs from the inner to the outer corner and bows by twice the curve at its
+        // control point, so its middle comes in by the curve. The rest of the shape lies outside the eye.
+        const lid = (lid, edgeY, dir, farY) => {
+            if (Math.max(lid.inner, lid.outer, (lid.inner + lid.outer) / 2 + lid.bow) <= 0)
+                return;
+            const inner = [innerX, edgeY + dir * lid.inner];
+            const outer = [outerX, edgeY + dir * lid.outer];
+            const control = [midX, edgeY + dir * ((lid.inner + lid.outer) / 2 + lid.bow * 2)];
+            cuts.push({
+                kind: 'path',
+                path: { start: [innerX, farY], segments: [{ to: inner }, { control, to: outer }, { to: [outerX, farY] }] },
+            });
+        };
+        lid(lids.top, y - 1, 1, y - 1 - h); // as the original: the top lid starts a pixel above the eye
+        lid(lids.bottom, y + h + 1, -1, y + h + 1 + h); // and the bottom lid a pixel below it
+        return cuts;
+    }
+    /**
+     * An eye's height while it blinks: blinkSpeed of the remaining way each frame. At 0.5 in "pixel" precision
+     * this is exactly the original's int((current + next) / 2), including stopping a pixel short when opening.
+     */
+    blinkEase(current, target) {
+        const value = current + (target - current) * this.blinkSpeed;
+        // Snap the last half pixel in "smooth", or a closing eye would linger before it counts as closed and reopens
+        if (this.precision === 'smooth')
+            return Math.abs(target - value) < 0.5 ? target : value;
+        const whole = Math.trunc(value);
+        // Below half speed, a whole-pixel step can round to nothing: keep opening a pixel a frame, up to the
+        // original's one-pixel-short stop
+        if (whole === current && target - current > 1)
+            return current + 1;
+        return whole;
+    }
     /** Halfway to the target each frame, like every value in the original. Always arrives, in both precisions. */
-    ease(current, next) {
-        const value = (current + next) / 2;
+    ease(current, next, speed = 0.5) {
+        const value = current + (next - current) * speed;
         if (this.precision === 'smooth')
             return Math.abs(next - value) < 0.05 ? next : value;
         // Round away from the current value so whole-number steps never stall one short of the target.
@@ -925,7 +1185,8 @@ export class RoboEyes {
     }
     /**
      * The mouth is one line, centred under the eyes, that moves with them (blinks leave it alone,
-     * since the eyes close around their centre, and so do the laugh and confused swings). Its middle
+     * since the eyes close around their centre; it follows a head shake and a nod, and bounces on its
+     * own when laughing). Its middle
      * stays straight; only the two corners bend, each by its own amount, over the outer quarter of
      * the line on each side.
      */
@@ -939,11 +1200,11 @@ export class RoboEyes {
             return;
         const leftEdge = this.eyeLx;
         const rightEdge = this.cyclops ? this.eyeLx + this.eyeLwidthCurrent : this.eyeRx + this.eyeRwidthCurrent;
-        const cx = (leftEdge + rightEdge) / 2;
+        const cx = (leftEdge + rightEdge) / 2 + this.shakeX;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
         const y = eyeCentre + this.eyeLheightDefault / 2 + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY;
         const x0 = cx - width / 2, x1 = cx + width / 2;
-        const curl = width * 0.25; // how much of each end bends
+        const curl = width * this.mouthCurl; // how much of each end bends
         const clamp = (lift) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long
         const liftL = clamp(this.mouthLeftCurrent), liftR = clamp(this.mouthRightCurrent);
         this.display.strokeLine({
@@ -955,4 +1216,40 @@ export class RoboEyes {
             ],
         }, thickness);
     }
+}
+const LEVEL = { height: 0, angle: 0, curve: 0 };
+const NO_LID = { inner: 0, outer: 0, bow: 0 };
+const OPEN_EYES = { top: LEVEL, bottom: LEVEL, closed: false };
+/** An eye state with a patch laid over it. */
+function eyesWith(base, patch) {
+    const eyes = {
+        top: { ...base.top, ...withoutNulls(patch?.top) },
+        bottom: { ...base.bottom, ...withoutNulls(patch?.bottom) },
+        closed: patch?.closed ?? base.closed,
+    };
+    // null takes it out of its folder
+    const group = patch?.group === null ? undefined : patch?.group ?? base.group;
+    if (group)
+        eyes.group = group;
+    for (const side of ['left', 'right']) {
+        // null drops that eye's own lids, so it goes back to the shared ones
+        const own = patch?.[side] === null ? {} : lidsWith(base[side], patch?.[side]);
+        if (own.top || own.bottom)
+            eyes[side] = own;
+    }
+    return eyes;
+}
+/** One eye's own lids with a patch laid over them; a lid with nothing in it is left out. */
+function lidsWith(base, patch) {
+    const lids = {};
+    for (const which of ['top', 'bottom']) {
+        const lid = { ...base?.[which], ...withoutNulls(patch?.[which]) };
+        if (Object.keys(lid).length)
+            lids[which] = lid;
+    }
+    return lids;
+}
+/** obj without the keys whose value is null or undefined, which mean "left out". */
+function withoutNulls(obj) {
+    return Object.fromEntries(Object.entries(obj ?? {}).filter(([, value]) => value !== null && value !== undefined));
 }
