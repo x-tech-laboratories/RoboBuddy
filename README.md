@@ -37,7 +37,7 @@ overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for 
 A face is built in layers:
 
 1. **Face states**, the building blocks. Each can be set on its own:
-   - a face state for the whole face, `setFace(name)`: `still`, or `shakeHead`, `slowShakeHead` (a head shake at
+   - a head state for the whole head, `setHead(name)`: `still`, or `shakeHead`, `slowShakeHead` (a head shake at
      half the rate) or `nod`, which keep shaking the head or nodding until another face state is set (at the
      `shakeHead` and `nod` settings)
    - an eye state, `setEyes(name)`: `open`, `sad`, `angry`, `happy`, `happySad` (sad top lids over happy bottom
@@ -54,7 +54,7 @@ A face is built in layers:
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
    `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. A
-   face, eye or mouth state it leaves out is `still`, `open` or `neutral`, a toggle it leaves out is its default, and
+   head, eye or mouth state it leaves out is `still`, `open` or `neutral`, a toggle it leaves out is its default, and
    a look it leaves out stays where it is. Setting a face state yourself lasts until the next mood.
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth and
    smooth motion), which no mood changes.

@@ -66,8 +66,8 @@ export interface EyeState {
 
 /** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
  *  shakeHead and nod settings). */
-export const FACE_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'] as const;
-export type FaceState = typeof FACE_STATES[number];
+export const HEAD_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'] as const;
+export type HeadState = typeof HEAD_STATES[number];
 
 /** A mouth state, in screen pixels. */
 export interface MouthState {
@@ -124,8 +124,8 @@ export interface Modes {
  * it leaves out is its default from FaceConfig.toggles; a look it leaves out stays where it is.
  */
 export interface MoodConfig extends Partial<Toggles> {
-    /** One of FACE_STATES; still if left out. */
-    face?: FaceState;
+    /** One of HEAD_STATES; still if left out. */
+    head?: HeadState;
     eyes?: string;
     mouth?: string;
     look?: string;

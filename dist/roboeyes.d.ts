@@ -1,4 +1,4 @@
-import { type EyeState, type FaceState, type FaceConfig, type FaceConfigPatch, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles } from './config.js';
+import { type EyeState, type HeadState, type FaceConfig, type FaceConfigPatch, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles } from './config.js';
 export * from './config.js';
 export declare const DEFAULT = 0;
 export declare const SAD = 1;
@@ -95,7 +95,7 @@ export declare class RoboEyes {
     looks: Record<string, LookState>;
     moods: Record<string, MoodConfig>;
     mood: string;
-    faceState: FaceState;
+    headState: HeadState;
     eyeState: string;
     mouthState: string;
     look: string;
@@ -255,7 +255,7 @@ export declare class RoboEyes {
     setBorderradius(leftEye: number, rightEye: number): void;
     setSpacebetween(space: number): void;
     setMood(mood: Mood | string): void;
-    setFace(name: FaceState): void;
+    setHead(name: HeadState): void;
     setEyes(name: string): void;
     setMouthState(name: string): void;
     setLook(name: string): void;

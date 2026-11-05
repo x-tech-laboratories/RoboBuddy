@@ -271,7 +271,7 @@
             const name = input.value.trim();
             if (!name) return;
             // The face as it is now: its states, and the toggles that differ from their defaults
-            const mood = { face: face.faceState, eyes: face.eyeState, mouth: face.mouthState, look: face.look };
+            const mood = { head: face.headState, eyes: face.eyeState, mouth: face.mouthState, look: face.look };
             for (const [key, field] of Object.entries(toggleFields)) if (face[field] !== face.toggleDefaults[key]) mood[key] = face[field];
             if (face.eyesOverride || face.mouthOverride) mood.override = { eyes: face.eyesOverride, mouth: face.mouthOverride };
             face.configure({ moods: { [name]: mood } });
@@ -324,7 +324,7 @@
 
         // [key, label, choices, what leaving it out means]
         const recipe = [
-            ['face', 'Face', () => R.FACE_STATES.filter((name) => name !== 'still'), 'still'],
+            ['head', 'Head', () => R.HEAD_STATES.filter((name) => name !== 'still'), 'still'],
             ['eyes', 'Eyes', () => Object.keys(face.eyeStates), 'open'],
             ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'neutral'],
             ['look', 'Look', () => Object.keys(face.looks), 'keep'],
@@ -488,8 +488,8 @@
             const config = face.getConfig();
             document.getElementById('moods').replaceChildren(...foldered('moods', Object.keys(face.moods), (name) => face.moods[name].group,
                 (name) => button(title(name), name === face.mood, () => face.setMood(name))));
-            document.getElementById('face-states').replaceChildren(...R.FACE_STATES.map((name) =>
-                button(title(name), name === face.faceState, () => face.setFace(name))));
+            document.getElementById('face-states').replaceChildren(...R.HEAD_STATES.map((name) =>
+                button(title(name), name === face.headState, () => face.setHead(name))));
             document.getElementById('eye-states').replaceChildren(...foldered('eyes', Object.keys(face.eyeStates), (name) => face.eyeStates[name].group,
                 (name) => button(title(name), name === face.eyeState, () => face.setEyes(name))));
             document.getElementById('mouth-states').replaceChildren(...foldered('mouths', Object.keys(face.mouthStates), (name) => face.mouthStates[name].group,

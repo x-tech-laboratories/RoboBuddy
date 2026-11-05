@@ -19,7 +19,7 @@
 import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 /** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
  *  shakeHead and nod settings). */
-export const FACE_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'];
+export const HEAD_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'];
 /** The face's settings and states as they come, kept in defaultConfig.json. */
 export const defaultConfig = defaultConfigJson;
 /** A deep copy of config with patch laid over it. */

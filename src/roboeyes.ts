@@ -54,7 +54,7 @@
  */
 
 import {
-    defaultConfig, FACE_STATES, mergeConfig, type EyeState, type FaceState, type FaceConfig, type FaceConfigPatch,
+    defaultConfig, HEAD_STATES, mergeConfig, type EyeState, type HeadState, type FaceConfig, type FaceConfigPatch,
     type EyeLids, type LidShape, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles,
 } from './config.js';
 export * from './config.js';
@@ -263,7 +263,7 @@ export class RoboEyes {
     looks: Record<string, LookState> = structuredClone(defaultConfig.looks);
     moods: Record<string, MoodConfig> = structuredClone(defaultConfig.moods);
     mood = 'default'; // the mood set last
-    faceState: FaceState = 'still'; // the face states in use now
+    headState: HeadState = 'still'; // the face states in use now
     eyeState = 'open';
     mouthState = 'neutral';
     look = defaultConfig.look;
@@ -665,16 +665,16 @@ export class RoboEyes {
         for (const [key, field] of Object.entries(TOGGLES) as [keyof Toggles, typeof TOGGLES[keyof Toggles]][]) {
             this[field] = m[key] ?? this.toggleDefaults[key];
         }
-        this.setFace(m.face ?? 'still');
+        this.setHead(m.head ?? 'still');
         this.applyEyes(m.eyes ?? 'open', m.override?.eyes ?? undefined);
         this.applyMouth(m.mouth ?? 'neutral', m.override?.mouth ?? undefined);
         if (m.look) this.setLook(m.look);
     }
 
-    // Port: set what the whole face does (see FACE_STATES): hold still, or keep shaking its head or nodding.
+    // Port: set what the whole face does (see HEAD_STATES): hold still, or keep shaking its head or nodding.
     // Changing it stops the swing straight away (a one-shot anim_shakeHead() or anim_nod() still runs its time).
-    setFace(name: FaceState) {
-        if (FACE_STATES.includes(name)) this.faceState = name;
+    setHead(name: HeadState) {
+        if (HEAD_STATES.includes(name)) this.headState = name;
     }
 
     // Port: set the eye state by name (see eyeStates), whatever the mood
@@ -983,9 +983,9 @@ export class RoboEyes {
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
         // Port: a face state that shakes or nods starts the swing, which then keeps going until the face state changes
-        const shaking = this.faceState === 'shakeHead' || this.faceState === 'slowShakeHead';
+        const shaking = this.headState === 'shakeHead' || this.headState === 'slowShakeHead';
         if (shaking && !this.shakeHead) this.shakeHead = true;
-        if (this.faceState === 'nod' && !this.nod) this.nod = true;
+        if (this.headState === 'nod' && !this.nod) this.nod = true;
 
         if (this.laugh) {
             if (this.laughToggle) {
@@ -1023,7 +1023,7 @@ export class RoboEyes {
                 this.mouthShakeYNext = this.nodAmplitude;
                 this.nodAnimationTimer = millis();
                 this.nodToggle = false;
-            } else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && this.faceState !== 'nod') {
+            } else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && this.headState !== 'nod') {
                 this.shakeYNext = 0;
                 this.mouthShakeYNext = 0;
                 this.nodToggle = true;
@@ -1033,7 +1033,7 @@ export class RoboEyes {
 
         // Port: each swing eases like a blink, and turns back once it arrives
         // Port: the slow head shake swings at half the speed of a head shake
-        const shakeSpeed = this.faceState === 'slowShakeHead' ? this.blinkSpeed / 2 : this.blinkSpeed;
+        const shakeSpeed = this.headState === 'slowShakeHead' ? this.blinkSpeed / 2 : this.blinkSpeed;
         this.shakeX = this.ease(this.shakeX, this.shakeXNext, shakeSpeed);
         if (this.shakeHead && this.shakeX === this.shakeXNext) this.shakeXNext = -this.shakeXNext;
         this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.blinkSpeed);
