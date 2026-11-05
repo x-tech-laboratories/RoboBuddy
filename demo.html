@@ -103,6 +103,15 @@
         </fieldset>
 
         <fieldset>
+            <legend>Speak</legend>
+            <div class="label left">Type some text; its spelling is turned into sounds and mouth shapes (visemes) and played. Or hold one shape with its button.</div>
+            <input id="speak-text" size="40" value="Hello, I am a talking robot" />
+            <button id="speak-go">Speak</button>
+            <label>Speed <input type="range" id="speak-speed" min="0.4" max="3" step="0.1" value="1" /></label>
+            <div id="visemes"></div>
+        </fieldset>
+
+        <fieldset>
             <legend>Mood: <span id="mood-name"></span></legend>
             <label>Folder <input data-group-of="moods" size="24" placeholder="e.g. Upset/Angry" /></label>
             <div class="sliders" id="mood-recipe"></div>
@@ -301,6 +310,18 @@
             close: (eyes) => eyes.close(),
             open: (eyes) => eyes.open(),
         };
+        const speakText = document.getElementById('speak-text');
+        const speak = () => face.speak(speakText.value, { speed: Number(document.getElementById('speak-speed').value) });
+        document.getElementById('speak-go').onclick = speak;
+        speakText.onkeydown = (e) => { if (e.key === 'Enter') speak(); };
+        const visemeButtons = document.getElementById('visemes');
+        for (const name of Object.keys(face.visemes)) {
+            const b = document.createElement('button');
+            b.textContent = name;
+            b.onclick = () => face.setViseme(face.viseme === name ? null : name);
+            visemeButtons.append(b);
+        }
+
         document.querySelectorAll('[data-do]').forEach((b) => b.onclick = () => actions[b.dataset.do](face));
 
         document.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => {

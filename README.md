@@ -129,7 +129,12 @@ reserves room for the largest) and optionally `width`, which only counts
 when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `closedGasp`, a dot, does). With
 `followLook: true` (as `smirk`) the corners swap as the eyes look left, so the smirk curls up on the side away from
 where they look. The `talk` toggle keeps whichever mouth state is in use opening and closing at random, up to its open amounts (or `talk.open` pixels if it has none), like syllables; `setTalk(true)` turns it on and a mood can set `talk`. The `talk` settings set its pace (`syllableMs`, `variationMs`, `pauseChance`) and how natural it looks: the upper lip lifts
-with the opening (`lipLift`) and each corner follows the opening loosely and sways (`cornerSway`) on its own timing. A look is `x` and
+with the opening (`lipLift`) and each corner follows the opening loosely and sways (`cornerSway`) on its own timing.
+`speak(text, { speed })` says some text instead: the spelling is turned into sounds by letter rules (and a short list of irregular words),
+and each sound is a mouth shape from `talk.visemes` (`open`, `corner`, `width`, `lift` and `lip` for each; tune them there). Sounds made without the lips
+take on the vowel next to them, and fast speech opens less. It returns how long it takes in ms and works with any mouth state, with
+the `talk` toggle off. For real lip sync, play your own timed list with `speakVisemes([{ viseme: 'ah', ms: 120 }, ...])` (for example from a
+text-to-speech engine's viseme events), or hold one shape with `setViseme('oo')` and release it with `setViseme(null)`. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
 `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
 (slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking, and `nod: true` keeps it nodding, while the eyes look there.

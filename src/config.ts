@@ -117,6 +117,20 @@ export interface Toggles {
     talk: boolean;
 }
 
+/** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
+export interface Viseme {
+    /** How open the mouth is: 0 shut, 1 the mouth state's own opening (or talk.open when it has none). */
+    open: number;
+    /** How open the corners are compared with the middle: 1 as the mouth state has them, less pulls them in. */
+    corner: number;
+    /** The mouth's length as a multiple of its own: under 1 purses it, over 1 spreads it. */
+    width: number;
+    /** Lifts both corners by this many pixels (negative lowers them). */
+    lift: number;
+    /** How far the upper lip rises, as a fraction of talk.lipLift. */
+    lip: number;
+}
+
 /** Parts of the face itself, which stay the same whatever the mood. */
 export interface Modes {
     cyclops: boolean;
@@ -177,7 +191,9 @@ export interface FaceConfig {
      *  often that opening is shut, like a gap between words. open is how far a mouth state with no
      *  opening of its own opens, in pixels, and lipLift how far, the upper lip rises
      *  with a full opening, and cornerSway how far each corner wanders, on its own timing, as the mouth talks. */
-    talk: { syllableMs: number; variationMs: number; pauseChance: number; open: number; lipLift: number; cornerSway: number };
+    talk: { syllableMs: number; variationMs: number; pauseChance: number; open: number; lipLift: number; cornerSway: number;
+        /** The mouth shapes of speech by name, for setViseme() and speakVisemes(). */
+        visemes: Record<string, Viseme> };
     nod: { amplitude: number; speed: number };
     /** How far the shake toggle jitters the eyes, in pixels. */
     shake: { amplitude: number };
