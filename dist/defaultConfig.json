@@ -54,7 +54,24 @@
         "pauseChance": 0.2,
         "open": 8,
         "lipLift": 2,
-        "cornerSway": 1.5
+        "cornerSway": 1.5,
+        "visemes": {
+            "rest": { "open": 0, "corner": 1, "width": 1, "lift": 0, "lip": 0 },
+            "mbp": { "open": 0, "corner": 1, "width": 0.95, "lift": 0, "lip": 0 },
+            "ah": { "open": 1, "corner": 1, "width": 1, "lift": 0, "lip": 1 },
+            "eh": { "open": 0.6, "corner": 1, "width": 1.05, "lift": 0.5, "lip": 0.7 },
+            "ee": { "open": 0.25, "corner": 0.5, "width": 1.15, "lift": 1.5, "lip": 0.3 },
+            "o": { "open": 0.7, "corner": 0.4, "width": 0.7, "lift": 0, "lip": 0.6 },
+            "oo": { "open": 0.35, "corner": 0.3, "width": 0.55, "lift": 0, "lip": 0.2 },
+            "fv": { "open": 0.2, "corner": 0.6, "width": 1, "lift": 0, "lip": 1 },
+            "ch": { "open": 0.3, "corner": 0.4, "width": 0.75, "lift": 0, "lip": 0.4 },
+            "ss": { "open": 0.2, "corner": 0.8, "width": 1.05, "lift": 0.5, "lip": 0.3 },
+            "uh": { "open": 0.4, "corner": 1, "width": 1, "lift": 0, "lip": 0.3 },
+            "ih": { "open": 0.3, "corner": 0.8, "width": 1.08, "lift": 0.6, "lip": 0.3 },
+            "th": { "open": 0.2, "corner": 0.8, "width": 1, "lift": 0, "lip": 0.2 },
+            "er": { "open": 0.35, "corner": 0.5, "width": 0.8, "lift": 0, "lip": 0.3 },
+            "kg": { "open": 0.3, "corner": 1, "width": 1, "lift": 0, "lip": 0.2 }
+        }
     },
     "shake": {
         "amplitude": 2

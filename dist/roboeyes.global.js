@@ -74,7 +74,24 @@ const defaultConfigJson = {
         "pauseChance": 0.2,
         "open": 8,
         "lipLift": 2,
-        "cornerSway": 1.5
+        "cornerSway": 1.5,
+        "visemes": {
+            "rest": { "open": 0, "corner": 1, "width": 1, "lift": 0, "lip": 0 },
+            "mbp": { "open": 0, "corner": 1, "width": 0.95, "lift": 0, "lip": 0 },
+            "ah": { "open": 1, "corner": 1, "width": 1, "lift": 0, "lip": 1 },
+            "eh": { "open": 0.6, "corner": 1, "width": 1.05, "lift": 0.5, "lip": 0.7 },
+            "ee": { "open": 0.25, "corner": 0.5, "width": 1.15, "lift": 1.5, "lip": 0.3 },
+            "o": { "open": 0.7, "corner": 0.4, "width": 0.7, "lift": 0, "lip": 0.6 },
+            "oo": { "open": 0.35, "corner": 0.3, "width": 0.55, "lift": 0, "lip": 0.2 },
+            "fv": { "open": 0.2, "corner": 0.6, "width": 1, "lift": 0, "lip": 1 },
+            "ch": { "open": 0.3, "corner": 0.4, "width": 0.75, "lift": 0, "lip": 0.4 },
+            "ss": { "open": 0.2, "corner": 0.8, "width": 1.05, "lift": 0.5, "lip": 0.3 },
+            "uh": { "open": 0.4, "corner": 1, "width": 1, "lift": 0, "lip": 0.3 },
+            "ih": { "open": 0.3, "corner": 0.8, "width": 1.08, "lift": 0.6, "lip": 0.3 },
+            "th": { "open": 0.2, "corner": 0.8, "width": 1, "lift": 0, "lip": 0.2 },
+            "er": { "open": 0.35, "corner": 0.5, "width": 0.8, "lift": 0, "lip": 0.3 },
+            "kg": { "open": 0.3, "corner": 1, "width": 1, "lift": 0, "lip": 0.2 }
+        }
     },
     "shake": {
         "amplitude": 2
@@ -561,6 +578,323 @@ function merge(target, patch) {
     return target;
 }
 
+/** How long each sound lasts at a normal pace, in ms. */
+const SOUND_MS = {
+    ah: 120, eh: 105, ee: 105, o: 120, oo: 110, ih: 80, uh: 65, er: 90,
+    mbp: 70, fv: 75, th: 70, ss: 60, ch: 85, kg: 55,
+};
+const VOWELS = new Set(['ah', 'eh', 'ee', 'o', 'oo', 'ih', 'uh', 'er']);
+/** Sounds made with the lips, which keep their own shape instead of taking the next vowel's. */
+const LIPS = new Set(['mbp', 'fv']);
+/** Sounds that keep their own shape. */
+const OWN = new Set(['er']);
+/** How long a mark of punctuation holds the mouth shut, in ms. */
+const PAUSE_MS = { ',': 220, ';': 260, ':': 260, '.': 380, '!': 380, '?': 380, '-': 120, '\n': 300 };
+/** Words the letter rules get wrong, as the sounds they are said with. */
+const WORDS = {
+    the: 'th uh', a: 'uh', an: 'eh ss', and: 'uh ss', of: 'uh fv', to: 'ss oo', too: 'ss oo', two: 'ss oo', you: 'ee oo',
+    your: 'ee o', are: 'ah', is: 'ih ss', was: 'oo uh ss', were: 'oo er', one: 'oo uh ss', once: 'oo uh ss', who: 'kg oo',
+    what: 'oo uh ss', where: 'oo eh', there: 'th eh', their: 'th eh', they: 'th eh ee', them: 'th eh mbp', then: 'th eh ss',
+    this: 'th ih ss', that: 'th eh ss', these: 'th ee ss', those: 'th o ss', with: 'oo ih th', have: 'kg eh fv', give: 'kg ih fv',
+    live: 'ss ih fv', love: 'ss uh fv', some: 'ss uh mbp', come: 'kg uh mbp', do: 'ss oo', does: 'ss uh ss', done: 'ss uh ss',
+    said: 'ss eh ss', says: 'ss eh ss', many: 'mbp eh ss ee', any: 'eh ss ee', very: 'fv eh er ee', people: 'mbp ee mbp uh',
+    eye: 'ah ee', i: 'ah ee', "i'm": 'ah ee mbp', "i'll": 'ah ee ss', "i've": 'ah ee fv', "i'd": 'ah ee ss', "don't": 'ss o ss',
+    "won't": 'oo o ss', "can't": 'kg eh ss', now: 'ss ah oo', how: 'kg ah oo', cow: 'kg ah oo', wow: 'oo ah oo', down: 'ss ah oo ss',
+    town: 'ss ah oo ss', brown: 'mbp er ah oo ss', hello: 'kg eh ss o', hi: 'kg ah ee', hey: 'kg eh ee', yes: 'ee eh ss', no: 'ss o',
+    robot: 'er o mbp ah ss', beautiful: 'mbp ee oo ss ih fv uh ss', through: 'th er oo', though: 'th o', thought: 'th o ss',
+    could: 'kg oo ss', would: 'oo oo ss', should: 'ch oo ss', because: 'mbp ih kg uh ss', friend: 'fv er eh ss', great: 'kg er eh ee ss',
+};
+/** The digits, said one at a time. */
+const DIGITS = ['ss ee er o', 'oo uh ss', 'ss oo', 'th er ee', 'fv o', 'fv ah ee fv', 'ss ih kg ss', 'ss eh fv uh ss', 'eh ee ss', 'ss ah ee ss'];
+const isVowel = (c) => c !== '' && 'aeiou'.includes(c);
+/** The sounds of one word, by spelling. */
+function wordSounds(word) {
+    const w = word.replace(/'/g, '');
+    const n = w.length;
+    const out = [];
+    let groups = 0; // vowel groups so far; the first one carries the stress, the later ones are said lightly
+    const at = (k) => w[k] ?? '';
+    const vowel = (long, short) => {
+        out.push(...(long.length ? long : [groups === 0 || short === 'ih' ? short : 'uh']));
+        groups++;
+    };
+    for (let i = 0; i < n;) {
+        const c = w[i], rest = w.slice(i), prev = at(i - 1), next = at(i + 1), next2 = at(i + 2);
+        const starts = (s) => rest.startsWith(s);
+        // endings and groups of letters said as one
+        if (starts('tch')) {
+            out.push('ch');
+            i += 3;
+            continue;
+        }
+        if (starts('tion') || starts('sion') || starts('cian')) {
+            out.push('ch', 'uh', 'ss');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('ture')) {
+            out.push('ch', 'er');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('ing') && i + 3 === n) {
+            out.push('ih', 'kg');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ous') && i + 3 === n) {
+            out.push('uh', 'ss');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('igh')) {
+            out.push('ah', 'ee');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ough') || starts('augh')) {
+            out.push('o');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('eau')) {
+            out.push('o');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ch') || starts('sh')) {
+            out.push('ch');
+            i += 2;
+            continue;
+        }
+        if (starts('ph')) {
+            out.push('fv');
+            i += 2;
+            continue;
+        }
+        if (starts('th')) {
+            out.push('th');
+            i += 2;
+            continue;
+        }
+        if (starts('wh')) {
+            out.push('oo');
+            i += 2;
+            continue;
+        }
+        if (starts('ck') || starts('ng')) {
+            out.push('kg');
+            i += 2;
+            continue;
+        }
+        if (starts('qu')) {
+            out.push('kg', 'oo');
+            i += 2;
+            continue;
+        }
+        if (starts('gh')) {
+            if (i === 0)
+                out.push('kg');
+            i += 2;
+            continue;
+        } // silent after a vowel: night, though
+        if (i === 0 && (starts('kn') || starts('gn'))) {
+            out.push('ss');
+            i += 2;
+            continue;
+        }
+        if (i === 0 && starts('wr')) {
+            out.push('er');
+            i += 2;
+            continue;
+        }
+        if (starts('mb') && i + 2 === n) {
+            out.push('mbp');
+            i += 2;
+            continue;
+        }
+        // vowel pairs
+        const pair = rest.slice(0, 2);
+        const pairs = {
+            ee: ['ee'], ea: ['ee'], ie: ['ee'], ei: ['ee'], ai: ['eh', 'ee'], ay: ['eh', 'ee'], oa: ['o'], oo: ['oo'], ou: ['ah', 'oo'],
+            oi: ['o', 'ee'], oy: ['o', 'ee'], au: ['o'], aw: ['o'], ew: ['oo'], ue: ['oo'], ui: ['oo'], eu: ['oo'],
+            ey: i + 2 === n ? ['ee'] : ['eh', 'ee'], ow: i + 2 === n ? ['o'] : ['ah', 'oo'],
+        };
+        if (pairs[pair] && !starts('oing')) {
+            out.push(...pairs[pair]);
+            i += 2;
+            groups++;
+            continue;
+        }
+        if (isVowel(c) || (c === 'y' && i > 0)) {
+            // a vowel before r takes the r's colour
+            if (next === 'r' && !isVowel(next2) && c !== 'y') {
+                if (c === 'a')
+                    out.push('ah');
+                else if (c === 'o')
+                    out.push('o');
+                else
+                    out.push('er');
+                groups++;
+                i += c === 'a' || c === 'o' ? 1 : 2;
+                continue;
+            }
+            // a silent final e, and the -ed / -es endings that lose theirs
+            if (c === 'e' && groups > 0 && !isVowel(prev) && (i === n - 1 || (i === n - 2 && (next === 'd' || next === 's') && !'tdsxzc'.includes(prev)))) {
+                i++;
+                continue;
+            }
+            const magicE = !isVowel(next) && next2 === 'e' && (i + 3 === n || (i + 4 === n && (at(n - 1) === 's' || at(n - 1) === 'd')));
+            const openFirst = groups === 0 && next !== '' && !isVowel(next) && isVowel(next2) && next !== next2;
+            const atEnd = i === n - 1;
+            if (c === 'y') {
+                if (atEnd)
+                    out.push(...(n <= 3 ? ['ah', 'ee'] : ['ee']));
+                else
+                    out.push('ih');
+                groups++;
+            }
+            else if (c === 'a')
+                vowel(magicE || openFirst ? ['eh', 'ee'] : atEnd && n > 1 ? ['uh'] : [], 'ah');
+            else if (c === 'e')
+                vowel(magicE || openFirst || (atEnd && n <= 3) ? ['ee'] : [], 'eh');
+            else if (c === 'i')
+                vowel(magicE || openFirst ? ['ah', 'ee'] : atEnd ? ['ee'] : [], 'ih');
+            else if (c === 'o')
+                vowel(magicE || openFirst || atEnd ? ['o'] : [], 'ah');
+            else
+                vowel(magicE || openFirst || atEnd ? ['oo'] : [], 'uh');
+            i++;
+            continue;
+        }
+        // consonants
+        if (c === next) {
+            i++;
+            continue;
+        } // a doubled letter is said once
+        if (c === 'l' && i === n - 2 && next === 'e' && !isVowel(prev)) {
+            out.push('uh', 'ss');
+            i += 2;
+            groups++;
+            continue;
+        } // table, little
+        if ('bpm'.includes(c))
+            out.push('mbp');
+        else if (c === 'f' || c === 'v')
+            out.push('fv');
+        else if (c === 'w')
+            out.push('oo');
+        else if (c === 'y')
+            out.push('ee');
+        else if (c === 'r')
+            out.push('er');
+        else if (c === 'j')
+            out.push('ch');
+        else if (c === 'x')
+            out.push('kg', 'ss');
+        else if (c === 'c')
+            out.push(next !== '' && 'eiy'.includes(next) ? 'ss' : 'kg');
+        else if (c === 'g')
+            out.push('eiy'.includes(next) && next !== '' ? 'ch' : 'kg');
+        else if ('kqh'.includes(c))
+            out.push('kg');
+        else if ('sztdnl'.includes(c))
+            out.push('ss');
+        i++;
+    }
+    return out;
+}
+const SPELLED = (text) => text.toLowerCase().replace(/[’‘]/g, "'");
+/** Mixes two shapes: 0 is a, 1 is b. */
+function mix(a, b, t, fields) {
+    const out = { ...a };
+    for (const f of fields)
+        out[f] = a[f] + (b[f] - a[f]) * t;
+    return out;
+}
+/**
+ * Turns text into a list of mouth shapes with durations, for speakVisemes(). visemes is the table of shapes
+ * (talk.visemes); a sound it has no shape for is left out.
+ */
+function textToVisemes(text, visemes, options = {}) {
+    const speed = Math.max(0.2, options.speed ?? 1);
+    const queue = [];
+    const push = (names) => {
+        const first = queue.length;
+        let stressed = false;
+        names.forEach((name) => {
+            if (!visemes[name])
+                return;
+            const isVowelSound = VOWELS.has(name);
+            const sound = { name, ms: SOUND_MS[name] ?? 80, stressed: isVowelSound && !stressed && name !== 'uh', wordEnd: false, pause: false };
+            if (sound.stressed)
+                stressed = true;
+            queue.push(sound);
+        });
+        if (queue.length > first) {
+            const last = queue[queue.length - 1];
+            last.wordEnd = true;
+            if (VOWELS.has(last.name))
+                last.ms *= 1.2; // a word's last vowel is drawn out a little
+        }
+    };
+    for (const token of SPELLED(text).match(/[a-z]+(?:'[a-z]+)*|\d|[,.;:!?\-\n]/g) ?? []) {
+        if (PAUSE_MS[token])
+            queue.push({ name: 'rest', ms: PAUSE_MS[token], stressed: false, wordEnd: false, pause: true });
+        else if (/\d/.test(token))
+            push(DIGITS[Number(token)].split(' '));
+        else
+            push((WORDS[token] ?? WORDS[token.replace(/'/g, '')])?.split(' ') ?? wordSounds(token));
+    }
+    // a stressed vowel is held longer
+    for (const s of queue)
+        if (s.stressed)
+            s.ms *= 1.25;
+    const neighbourVowel = (at) => {
+        for (let k = at + 1; k <= at + 2 && k < queue.length; k++) {
+            if (queue[k].pause)
+                break;
+            if (VOWELS.has(queue[k].name))
+                return visemes[queue[k].name];
+        }
+        for (let k = at - 1; k >= at - 2 && k >= 0; k--) {
+            if (queue[k].pause)
+                break;
+            if (VOWELS.has(queue[k].name))
+                return visemes[queue[k].name];
+        }
+        return undefined;
+    };
+    return queue.map((s, at) => {
+        const ms = s.ms / speed;
+        if (s.pause)
+            return { viseme: s.name, ms };
+        let shape = { ...visemes[s.name] };
+        const neighbour = neighbourVowel(at);
+        if (neighbour && !OWN.has(s.name)) {
+            if (LIPS.has(s.name))
+                shape = mix(shape, neighbour, 0.35, ['width', 'corner', 'lift']);
+            else if (!VOWELS.has(s.name))
+                shape = mix(shape, neighbour, 0.55, ['open', 'width', 'corner', 'lift', 'lip']);
+        }
+        // fast speech undershoots: the mouth does not get all the way to the shape
+        const rate = Math.min(1, 0.6 + 0.4 * (ms / (SOUND_MS[s.name] ?? 80)));
+        if (!LIPS.has(s.name)) {
+            shape.open *= rate;
+            shape.lip *= rate;
+        }
+        shape.width = 1 + (shape.width - 1) * rate;
+        return { viseme: shape, ms };
+    });
+}
+
 /*
  * RoboEyes for the web: a TypeScript port of FluxGarage RoboEyes for OLED Displays V 1.1.1,
  * with a mouth added.
@@ -927,6 +1261,11 @@ class RoboEyes {
         this.mouthTalkSway = [0, 0];
         this.mouthTalkCornerTimer = [0, 0];
         this.mouthLipCurrent = 0; // how far the upper lip is raised
+        // Port: a viseme (a mouth shape of speech) overrides the random talk; speakVisemes() plays a list of them in turn
+        this.visemes = structuredClone(defaultConfig.talk.visemes);
+        this.viseme = null; // a name from the table, or a shape of its own
+        this.visemeQueue = [];
+        this.visemeEnd = 0; // when the current viseme of the queue is over
         // Port: animation - nod head: eyes and mouth swinging down and up
         this.nod = false;
         this.nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
@@ -996,7 +1335,7 @@ class RoboEyes {
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
-            talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway },
+            talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway, visemes: structuredClone(this.visemes) },
             nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
             shake: { amplitude: this.hFlickerAmplitude },
             modes: { cyclops: this.cyclops, mouth: this.mouth, smooth: this.precision === 'smooth' },
@@ -1053,6 +1392,7 @@ class RoboEyes {
         this.talkOpen = Math.max(0, c.talk.open);
         this.talkLipLift = Math.max(0, c.talk.lipLift);
         this.talkCornerSway = Math.max(0, c.talk.cornerSway);
+        this.visemes = structuredClone(c.talk.visemes);
         this.nodAmplitude = c.nod.amplitude;
         this.nodSpeed = Math.max(0.05, Math.min(0.8, c.nod.speed));
         this.hFlickerAmplitude = c.shake.amplitude;
@@ -1352,6 +1692,26 @@ class RoboEyes {
     setTalk(talkBit) {
         this.mouthTalk = talkBit;
     }
+    // Port: hold the mouth in a viseme (a key of talk.visemes), or null to go back to the toggle. It talks even with the toggle off.
+    setViseme(name) {
+        this.visemeQueue = [];
+        this.visemeEnd = 0;
+        this.viseme = name !== null && this.visemes[name] ? name : null;
+    }
+    // Port: say some text: its spelling is turned into mouth shapes (see speech.ts) and played. Returns how long it takes in ms.
+    speak(text, options) {
+        const sequence = textToVisemes(text, this.visemes, options);
+        this.speakVisemes(sequence);
+        return sequence.reduce((total, step) => total + step.ms, 0);
+    }
+    // Port: play visemes one after another, each for its ms, then go back to the toggle. A viseme is a name from the table
+    // (an unknown one is the rest shape) or a shape of its own.
+    speakVisemes(sequence) {
+        this.visemeQueue = sequence.slice();
+        this.visemeEnd = 0;
+        if (!this.visemeQueue.length)
+            this.viseme = null;
+    }
     // Port: how high the mouth sits, as the space in pixels between the bottom of the eyes and the mouth
     setMouthGap(gap) {
         this.mouthGapNext = Math.max(0, gap);
@@ -1375,7 +1735,7 @@ class RoboEyes {
         // a corner's opening below that corner's own bend
         const reach = (s) => Math.max(s.open ?? 0, (s.leftOpen ?? 0) - (s.left ?? 0), (s.rightOpen ?? 0) - (s.right ?? 0));
         const open = Math.max(0, ...Object.values(this.mouthStates).map(reach), ...(this.mouthOverride ? [reach(this.mouthOverride)] : []));
-        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + Math.max(open, this.mouthTalk ? this.talkOpen : 0) : 0;
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + Math.max(open, this.mouthTalk || this.viseme ? this.talkOpen : 0) : 0;
     }
     //*********************************************************************************************
     //  BASIC ANIMATION METHODS
@@ -1477,12 +1837,23 @@ class RoboEyes {
         // Right eye border radius
         this.eyeRborderRadiusCurrent = int((this.eyeRborderRadiusCurrent + this.eyeRborderRadiusNext) / 2);
         // Port: mouth length, height and corners ease the same way
-        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext);
+        const now = millis();
+        if (this.visemeQueue.length && now >= this.visemeEnd) {
+            const next = this.visemeQueue.shift();
+            this.viseme = typeof next.viseme === 'string' && !this.visemes[next.viseme] ? 'rest' : next.viseme;
+            this.visemeEnd = now + Math.max(0, next.ms);
+        }
+        else if (!this.visemeQueue.length && this.viseme && this.visemeEnd && now >= this.visemeEnd) {
+            this.viseme = null; // the last one of the list is over
+            this.visemeEnd = 0;
+        }
+        const shape = typeof this.viseme === 'string' ? this.visemes[this.viseme] : this.viseme ?? undefined;
+        const talking = this.mouthTalk || !!shape;
+        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext * (shape?.width ?? 1));
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
         // Port: a talking mouth picks a new opening each syllable, sometimes shut for a gap between words. The upper lip
         // lifts with the opening, and each corner follows it only loosely, on its own timing, and sways a little.
-        const now = millis();
-        if (this.mouthTalk) {
+        if (this.mouthTalk && !shape) {
             if (now >= this.mouthTalkTimer) {
                 this.mouthTalkLevel = Math.random() < this.talkPauseChance ? 0 : 0.35 + Math.random() * 0.65;
                 this.mouthTalkTimer = now + this.talkSyllableMs + random(this.talkVariationMs);
@@ -1495,14 +1866,15 @@ class RoboEyes {
                 this.mouthTalkCornerTimer[side] = now + this.talkSyllableMs * (0.6 + Math.random() * 0.8) + random(this.talkVariationMs);
             }
         }
-        const talk = this.mouthTalk ? this.mouthTalkLevel : 1;
-        const [cornerL, cornerR] = this.mouthTalk ? this.mouthTalkCorner : [1, 1];
-        const [swayL, swayR] = this.mouthTalk ? this.mouthTalkSway.map(sway => sway * talk) : [0, 0];
+        // A viseme sets the whole shape; the random talk sets the opening and lets the corners follow it loosely
+        const talk = shape ? shape.open : this.mouthTalk ? this.mouthTalkLevel : 1;
+        const [cornerL, cornerR] = shape ? [shape.corner, shape.corner] : this.mouthTalk ? this.mouthTalkCorner : [1, 1];
+        const [swayL, swayR] = shape ? [shape.lift, shape.lift] : this.mouthTalk ? this.mouthTalkSway.map(sway => sway * talk) : [0, 0];
         this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext + swayL);
         this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext + swayR);
-        this.mouthLipCurrent = this.ease(this.mouthLipCurrent, this.mouthTalk ? talk * this.talkLipLift : 0);
+        this.mouthLipCurrent = this.ease(this.mouthLipCurrent, shape ? shape.lip * this.talkLipLift : this.mouthTalk ? talk * this.talkLipLift : 0);
         // A mouth state with no opening of its own opens by talkOpen in the middle and less at the corners (as wideSmile does)
-        const bare = this.mouthTalk && !(this.mouthOpenNext > 0 || this.mouthLeftOpenNext > 0 || this.mouthRightOpenNext > 0);
+        const bare = talking && !(this.mouthOpenNext > 0 || this.mouthLeftOpenNext > 0 || this.mouthRightOpenNext > 0);
         const [open, openL, openR] = bare ? [this.talkOpen, this.talkOpen * 0.4, this.talkOpen * 0.4] : [this.mouthOpenNext, this.mouthLeftOpenNext, this.mouthRightOpenNext];
         this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, open * talk);
         this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, openL * talk * cornerL);
@@ -1898,5 +2270,5 @@ function withoutNulls(obj) {
     return Object.fromEntries(Object.entries(obj ?? {}).filter(([, value]) => value !== null && value !== undefined));
 }
 
-window.RoboEyesLib = { defaultConfig, mergeConfig, DEFAULT, SAD, TIRED, ANGRY, HAPPY, SMIRK, ASLEEP, HAPPY_ASLEEP, WORRIED, FURIOUS, ON, OFF, N, NE, E, SE, S, SW, W, NW, CanvasDisplay, RoboEyes };
+window.RoboEyesLib = { defaultConfig, mergeConfig, wordSounds, textToVisemes, DEFAULT, SAD, TIRED, ANGRY, HAPPY, SMIRK, ASLEEP, HAPPY_ASLEEP, WORRIED, FURIOUS, ON, OFF, N, NE, E, SE, S, SW, W, NW, CanvasDisplay, RoboEyes };
 })();

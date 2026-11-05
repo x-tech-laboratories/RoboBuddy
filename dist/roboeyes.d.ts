@@ -1,5 +1,7 @@
-import { type EyeState, type FaceConfig, type FaceConfigPatch, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles } from './config.js';
+import { type EyeState, type FaceConfig, type FaceConfigPatch, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles, type Viseme } from './config.js';
+import { type SpeechOptions } from './speech.js';
 export * from './config.js';
+export { textToVisemes, type SpeechOptions } from './speech.js';
 export declare const DEFAULT = 0;
 export declare const SAD = 1;
 export declare const TIRED = 1;
@@ -212,6 +214,13 @@ export declare class RoboEyes {
     mouthTalkSway: number[];
     mouthTalkCornerTimer: number[];
     mouthLipCurrent: number;
+    visemes: Record<string, Viseme>;
+    viseme: string | Viseme | null;
+    visemeQueue: Array<{
+        viseme: string | Viseme;
+        ms: number;
+    }>;
+    visemeEnd: number;
     nod: boolean;
     nodAmplitude: number;
     nodSpeed: number;
@@ -293,6 +302,12 @@ export declare class RoboEyes {
     setMouthWidth(width: number): void;
     setMouthCorners(left: number, right?: number): void;
     setTalk(talkBit: boolean): void;
+    setViseme(name: string | null): void;
+    speak(text: string, options?: SpeechOptions): number;
+    speakVisemes(sequence: Array<{
+        viseme: string | Viseme;
+        ms: number;
+    }>): void;
     setMouthGap(gap: number): void;
     getScreenConstraint_X(): number;
     getScreenConstraint_Y(): number;

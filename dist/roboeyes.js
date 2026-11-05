@@ -53,7 +53,9 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { defaultConfig, mergeConfig, } from './config.js';
+import { textToVisemes } from './speech.js';
 export * from './config.js';
+export { textToVisemes } from './speech.js';
 // For mood type switch
 export const DEFAULT = 0;
 export const SAD = 1;
@@ -366,6 +368,11 @@ export class RoboEyes {
         this.mouthTalkSway = [0, 0];
         this.mouthTalkCornerTimer = [0, 0];
         this.mouthLipCurrent = 0; // how far the upper lip is raised
+        // Port: a viseme (a mouth shape of speech) overrides the random talk; speakVisemes() plays a list of them in turn
+        this.visemes = structuredClone(defaultConfig.talk.visemes);
+        this.viseme = null; // a name from the table, or a shape of its own
+        this.visemeQueue = [];
+        this.visemeEnd = 0; // when the current viseme of the queue is over
         // Port: animation - nod head: eyes and mouth swinging down and up
         this.nod = false;
         this.nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
@@ -435,7 +442,7 @@ export class RoboEyes {
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
-            talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway },
+            talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway, visemes: structuredClone(this.visemes) },
             nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
             shake: { amplitude: this.hFlickerAmplitude },
             modes: { cyclops: this.cyclops, mouth: this.mouth, smooth: this.precision === 'smooth' },
@@ -492,6 +499,7 @@ export class RoboEyes {
         this.talkOpen = Math.max(0, c.talk.open);
         this.talkLipLift = Math.max(0, c.talk.lipLift);
         this.talkCornerSway = Math.max(0, c.talk.cornerSway);
+        this.visemes = structuredClone(c.talk.visemes);
         this.nodAmplitude = c.nod.amplitude;
         this.nodSpeed = Math.max(0.05, Math.min(0.8, c.nod.speed));
         this.hFlickerAmplitude = c.shake.amplitude;
@@ -791,6 +799,26 @@ export class RoboEyes {
     setTalk(talkBit) {
         this.mouthTalk = talkBit;
     }
+    // Port: hold the mouth in a viseme (a key of talk.visemes), or null to go back to the toggle. It talks even with the toggle off.
+    setViseme(name) {
+        this.visemeQueue = [];
+        this.visemeEnd = 0;
+        this.viseme = name !== null && this.visemes[name] ? name : null;
+    }
+    // Port: say some text: its spelling is turned into mouth shapes (see speech.ts) and played. Returns how long it takes in ms.
+    speak(text, options) {
+        const sequence = textToVisemes(text, this.visemes, options);
+        this.speakVisemes(sequence);
+        return sequence.reduce((total, step) => total + step.ms, 0);
+    }
+    // Port: play visemes one after another, each for its ms, then go back to the toggle. A viseme is a name from the table
+    // (an unknown one is the rest shape) or a shape of its own.
+    speakVisemes(sequence) {
+        this.visemeQueue = sequence.slice();
+        this.visemeEnd = 0;
+        if (!this.visemeQueue.length)
+            this.viseme = null;
+    }
     // Port: how high the mouth sits, as the space in pixels between the bottom of the eyes and the mouth
     setMouthGap(gap) {
         this.mouthGapNext = Math.max(0, gap);
@@ -814,7 +842,7 @@ export class RoboEyes {
         // a corner's opening below that corner's own bend
         const reach = (s) => Math.max(s.open ?? 0, (s.leftOpen ?? 0) - (s.left ?? 0), (s.rightOpen ?? 0) - (s.right ?? 0));
         const open = Math.max(0, ...Object.values(this.mouthStates).map(reach), ...(this.mouthOverride ? [reach(this.mouthOverride)] : []));
-        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + Math.max(open, this.mouthTalk ? this.talkOpen : 0) : 0;
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + Math.max(open, this.mouthTalk || this.viseme ? this.talkOpen : 0) : 0;
     }
     //*********************************************************************************************
     //  BASIC ANIMATION METHODS
@@ -916,12 +944,23 @@ export class RoboEyes {
         // Right eye border radius
         this.eyeRborderRadiusCurrent = int((this.eyeRborderRadiusCurrent + this.eyeRborderRadiusNext) / 2);
         // Port: mouth length, height and corners ease the same way
-        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext);
+        const now = millis();
+        if (this.visemeQueue.length && now >= this.visemeEnd) {
+            const next = this.visemeQueue.shift();
+            this.viseme = typeof next.viseme === 'string' && !this.visemes[next.viseme] ? 'rest' : next.viseme;
+            this.visemeEnd = now + Math.max(0, next.ms);
+        }
+        else if (!this.visemeQueue.length && this.viseme && this.visemeEnd && now >= this.visemeEnd) {
+            this.viseme = null; // the last one of the list is over
+            this.visemeEnd = 0;
+        }
+        const shape = typeof this.viseme === 'string' ? this.visemes[this.viseme] : this.viseme ?? undefined;
+        const talking = this.mouthTalk || !!shape;
+        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext * (shape?.width ?? 1));
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
         // Port: a talking mouth picks a new opening each syllable, sometimes shut for a gap between words. The upper lip
         // lifts with the opening, and each corner follows it only loosely, on its own timing, and sways a little.
-        const now = millis();
-        if (this.mouthTalk) {
+        if (this.mouthTalk && !shape) {
             if (now >= this.mouthTalkTimer) {
                 this.mouthTalkLevel = Math.random() < this.talkPauseChance ? 0 : 0.35 + Math.random() * 0.65;
                 this.mouthTalkTimer = now + this.talkSyllableMs + random(this.talkVariationMs);
@@ -934,14 +973,15 @@ export class RoboEyes {
                 this.mouthTalkCornerTimer[side] = now + this.talkSyllableMs * (0.6 + Math.random() * 0.8) + random(this.talkVariationMs);
             }
         }
-        const talk = this.mouthTalk ? this.mouthTalkLevel : 1;
-        const [cornerL, cornerR] = this.mouthTalk ? this.mouthTalkCorner : [1, 1];
-        const [swayL, swayR] = this.mouthTalk ? this.mouthTalkSway.map(sway => sway * talk) : [0, 0];
+        // A viseme sets the whole shape; the random talk sets the opening and lets the corners follow it loosely
+        const talk = shape ? shape.open : this.mouthTalk ? this.mouthTalkLevel : 1;
+        const [cornerL, cornerR] = shape ? [shape.corner, shape.corner] : this.mouthTalk ? this.mouthTalkCorner : [1, 1];
+        const [swayL, swayR] = shape ? [shape.lift, shape.lift] : this.mouthTalk ? this.mouthTalkSway.map(sway => sway * talk) : [0, 0];
         this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext + swayL);
         this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext + swayR);
-        this.mouthLipCurrent = this.ease(this.mouthLipCurrent, this.mouthTalk ? talk * this.talkLipLift : 0);
+        this.mouthLipCurrent = this.ease(this.mouthLipCurrent, shape ? shape.lip * this.talkLipLift : this.mouthTalk ? talk * this.talkLipLift : 0);
         // A mouth state with no opening of its own opens by talkOpen in the middle and less at the corners (as wideSmile does)
-        const bare = this.mouthTalk && !(this.mouthOpenNext > 0 || this.mouthLeftOpenNext > 0 || this.mouthRightOpenNext > 0);
+        const bare = talking && !(this.mouthOpenNext > 0 || this.mouthLeftOpenNext > 0 || this.mouthRightOpenNext > 0);
         const [open, openL, openR] = bare ? [this.talkOpen, this.talkOpen * 0.4, this.talkOpen * 0.4] : [this.mouthOpenNext, this.mouthLeftOpenNext, this.mouthRightOpenNext];
         this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, open * talk);
         this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, openL * talk * cornerL);
