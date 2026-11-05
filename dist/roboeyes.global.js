@@ -342,15 +342,6 @@ const defaultConfigJson = {
             "width": 18,
             "group": "Frowns"
         },
-        "openFrown": {
-            "left": -6,
-            "right": -6,
-            "width": 28,
-            "open": 6,
-            "leftOpen": 6,
-            "rightOpen": 6,
-            "group": "Frowns"
-        },
         "flatBottomFrown": {
             "left": -6,
             "right": -6,
@@ -358,6 +349,15 @@ const defaultConfigJson = {
             "open": 10,
             "leftOpen": 4,
             "rightOpen": 4,
+            "group": "Frowns"
+        },
+        "openFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6,
             "group": "Frowns"
         }
     },
