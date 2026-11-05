@@ -99,6 +99,7 @@
             <button data-toggle="curious">Curious</button>
             <button data-toggle="sweat">Sweat</button>
             <button data-toggle="shake">Shake</button>
+            <button data-toggle="talk">Talk</button>
         </fieldset>
 
         <fieldset>
@@ -142,6 +143,7 @@
             <button data-default="curious">Curious</button>
             <button data-default="sweat">Sweat</button>
             <button data-default="shake">Shake</button>
+            <button data-default="talk">Talk</button>
             <div class="label left">What a toggle is when the mood doesn't set it.</div>
         </fieldset>
 
@@ -259,8 +261,8 @@
         //// Mood, moves and face states ////
 
         // Each toggle, the face's field that holds it, and its setter
-        const toggleFields = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker' };
-        const toggleSetters = { autoblink: 'setAutoblinker', curious: 'setCuriosity', sweat: 'setSweat', shake: 'setShake' };
+        const toggleFields = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk' };
+        const toggleSetters = { autoblink: 'setAutoblinker', curious: 'setCuriosity', sweat: 'setSweat', shake: 'setShake', talk: 'setTalk' };
 
         document.getElementById('add-mood').onclick = () => {
             const input = document.getElementById('new-mood');
@@ -321,7 +323,7 @@
             ['eyes', 'Eyes', () => Object.keys(face.eyeStates), 'open'],
             ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'softSmile'],
             ['look', 'Look', () => Object.keys(face.looks), 'keep'],
-            ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null],
+            ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null], ['talk', 'Talk', null],
         ];
         const recipeSelects = recipe.map(([key, text, choices, missing]) => {
             const label = document.createElement('label');
@@ -389,6 +391,13 @@
                 ['Shake head'],
                 ['shakeHead.amplitude', 'Swing', 0, 40, 1],
                 ['shakeHead.speed', 'Speed', 0.05, 0.8, 0.05],
+                ['Talk'],
+                ['talk.open', 'Opening when the mouth has none (px)', 0, 14, 1],
+                ['talk.syllableMs', 'Syllable (ms)', 20, 400, 10],
+                ['talk.variationMs', 'Random extra (ms)', 0, 400, 10],
+                ['talk.pauseChance', 'Pause chance', 0, 1, 0.05],
+                ['talk.lipLift', 'Upper lip lift (px)', 0, 6, 0.5],
+                ['talk.cornerSway', 'Corner sway (px)', 0, 5, 0.5],
                 ['Nod'],
                 ['nod.amplitude', 'Swing', 0, 20, 1],
                 ['nod.speed', 'Speed', 0.05, 0.8, 0.05],

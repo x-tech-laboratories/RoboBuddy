@@ -22,7 +22,7 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 /*
  * A face is built in layers:
  * - face states, the building blocks: an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander, or shake the head or nod) and four toggles (auto blink, curious, sweat and shake).
+ *   bend), a look (where the eyes point, or wander, or shake the head or nod) and five toggles (auto blink, curious, sweat, shake and talk).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -113,6 +113,8 @@ export interface Toggles {
     sweat: boolean;
     /** The eyes jitter left and right every frame (the original's horizontal flicker). */
     shake: boolean;
+    /** Whatever the mouth state, the mouth keeps opening and closing at random, like syllables (at the talk settings). */
+    talk: boolean;
 }
 
 /** Parts of the face itself, which stay the same whatever the mood. */
@@ -171,6 +173,11 @@ export interface FaceConfig {
     curious: { growth: number; edge: number };
     laugh: { amplitude: number; mouthAmplitude: number; durationMs: number };
     shakeHead: { amplitude: number; speed: number };
+    /** A talking mouth: it picks a new opening every syllableMs plus up to variationMs more; pauseChance (0 to 1) is how
+     *  often that opening is shut, like a gap between words. open is how far a mouth state with no
+     *  opening of its own opens, in pixels, and lipLift how far, the upper lip rises
+     *  with a full opening, and cornerSway how far each corner wanders, on its own timing, as the mouth talks. */
+    talk: { syllableMs: number; variationMs: number; pauseChance: number; open: number; lipLift: number; cornerSway: number };
     nod: { amplitude: number; speed: number };
     /** How far the shake toggle jitters the eyes, in pixels. */
     shake: { amplitude: number };

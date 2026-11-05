@@ -43,7 +43,7 @@ A face is built in layers:
      stays closed and auto blink blinks only the other), `peekLeft` or `peekRight` (the other eye shut, that one
      with happy sad's lids, the top tilted the other way) or `confused` (the left lid lowered, like one eyebrow raised)
    - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `closedGasp`,
-     `wavy`, or the open mouths `openSmile`, `wideSmile`, `laugh`, `openFrown`, `flatBottomFrown` and `openGasp`
+     `wavy`, or the open mouths `openSmile`, `wideSmile`, `laugh`, `openFrown` and `openGasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
@@ -128,7 +128,8 @@ A mouth state is `left` and `right` (how far each corner bends, in pixels), opti
 reserves room for the largest) and optionally `width`, which only counts
 when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `closedGasp`, a dot, does). With
 `followLook: true` (as `smirk`) the corners swap as the eyes look left, so the smirk curls up on the side away from
-where they look. A look is `x` and
+where they look. The `talk` toggle keeps whichever mouth state is in use opening and closing at random, up to its open amounts (or `talk.open` pixels if it has none), like syllables; `setTalk(true)` turns it on and a mood can set `talk`. The `talk` settings set its pace (`syllableMs`, `variationMs`, `pauseChance`) and how natural it looks: the upper lip lifts
+with the opening (`lipLift`) and each corner follows the opening loosely and sways (`cornerSway`) on its own timing. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
 `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
 (slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking, and `nod: true` keeps it nodding, while the eyes look there.
@@ -170,7 +171,7 @@ still be unique within its kind.
 - New: a nod look swings the eyes and mouth down and up the same way (`nodAmplitude`, `nodSpeed`).
 - New: the `closed` eye state keeps the eyes closed until another eye state is set. Auto blink and wander wait
   meanwhile.
-- Curious, sweat and shake (the original's horizontal flicker) are toggles, so a mood can turn them on or off.
+- Curious, sweat, talk and shake (the original's horizontal flicker) are toggles, so a mood can turn them on or off.
   `setVFlicker()` still works but is not a toggle, so no mood changes it. The toggles' setters set them until the
   next mood.
 - New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (sleepy eyes
