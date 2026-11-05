@@ -63,7 +63,7 @@ export const HAPPY = 3;
 export const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
 export const ASLEEP = 5; // port: eyes closed, mouth flat (not in the original)
 export const HAPPY_ASLEEP = 6; // port: eyes closed, smiling (not in the original)
-export const WORRIED = 7; // port: sweating, mouth up on the left and down on the right (not in the original)
+export const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
 export const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
 export const ON = true;

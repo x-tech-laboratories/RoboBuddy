@@ -115,7 +115,7 @@ const defaultConfig = {
         confused: { eyes: 'confused', mouth: 'wavy' },
         surprised: { mouth: 'surprised' },
         sad: { eyes: 'sad', mouth: 'slack', group: 'Upset' },
-        worried: { eyes: 'sad', mouth: 'wavy', sweat: true, group: 'Upset' },
+        worried: { eyes: 'sad', mouth: 'wavy', group: 'Upset' },
         scared: { eyes: 'sad', mouth: 'wavy', look: 'dart', sweat: true, shake: true, group: 'Upset' },
         angry: { eyes: 'angry', mouth: 'frown', group: 'Upset/Angry' },
         furious: { eyes: 'angry', mouth: 'frown', look: 'wander', curious: true, shake: true, group: 'Upset/Angry' },
@@ -200,7 +200,7 @@ const HAPPY = 3;
 const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
 const ASLEEP = 5; // port: eyes closed, mouth flat (not in the original)
 const HAPPY_ASLEEP = 6; // port: eyes closed, smiling (not in the original)
-const WORRIED = 7; // port: sweating, mouth up on the left and down on the right (not in the original)
+const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
 const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
 const ON = true;
