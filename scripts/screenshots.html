@@ -1,0 +1,26 @@
+<!doctype html><body style="background:#000"><script src="/dist/roboeyes.global.js"></script><script>
+const R = window.RoboEyesLib;
+const cfg = R.mergeConfig(R.defaultConfig, {
+  toggles: { autoblink: false },
+  eyes: { left: { width: 30, height: 30 }, right: { width: 30, height: 30 }, spacing: 14 },
+  mouth: { gap: 14, width: 45 },
+  mouthStates: { neutral: { width: 18 }, smile: { width: 26 }, softSmile: { width: 22 }, slack: { width: 10 },
+    frown: { width: 16 }, flat: { width: 14 }, smirk: { width: 18 }, wavy: { width: 18 } },
+});
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  for (const name of Object.keys(cfg.moods)) {
+    const c = document.createElement('canvas'); document.body.append(c);
+    const f = new R.RoboEyes(c, { config: cfg });
+    f.setDisplayColors('#000', '#fff'); f.begin(112, 80, 50); f.setAutoblinker(false);
+    f.setMood(name); f.setLook('center'); f.setAutoblinker(false);
+    f.start();
+    await wait(1500);
+    const o = document.createElement('canvas'); o.width = 448; o.height = 320;
+    const x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, 448, 320);
+    await fetch('/save/' + name, { method: 'POST', body: o.toDataURL('image/png') });
+    f.stop?.(); c.remove();
+  }
+  await fetch('/done', { method: 'POST' });
+})();
+</script>

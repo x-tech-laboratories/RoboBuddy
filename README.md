@@ -59,6 +59,15 @@ A face is built in layers:
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth and
    smooth motion), which no mood changes.
 
+Every mood, with the eyes centred (the `scared` and `furious` jitter and the `scared` sweat drops move in the live demo):
+
+<table>
+<tr><td align="center"><img src="screenshots/default.png" width="160" alt="default"><br>default</td><td align="center"><img src="screenshots/happy.png" width="160" alt="happy"><br>happy</td><td align="center"><img src="screenshots/smirk.png" width="160" alt="smirk"><br>smirk</td><td align="center"><img src="screenshots/bored.png" width="160" alt="bored"><br>bored</td></tr>
+<tr><td align="center"><img src="screenshots/asleep.png" width="160" alt="asleep"><br>asleep</td><td align="center"><img src="screenshots/happyAsleep.png" width="160" alt="happyAsleep"><br>happyAsleep</td><td align="center"><img src="screenshots/confused.png" width="160" alt="confused"><br>confused</td><td align="center"><img src="screenshots/surprised.png" width="160" alt="surprised"><br>surprised</td></tr>
+<tr><td align="center"><img src="screenshots/sad.png" width="160" alt="sad"><br>sad</td><td align="center"><img src="screenshots/worried.png" width="160" alt="worried"><br>worried</td><td align="center"><img src="screenshots/scared.png" width="160" alt="scared"><br>scared</td><td align="center"><img src="screenshots/angry.png" width="160" alt="angry"><br>angry</td></tr>
+<tr><td align="center"><img src="screenshots/furious.png" width="160" alt="furious"><br>furious</td></tr>
+</table>
+
 ## The mouth
 
 Always a single line under the eyes. Only three things change: its length, its height and how far each corner bends.
