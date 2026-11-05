@@ -293,6 +293,15 @@
             "open": 6,
             "group": "Smiles"
         },
+        "laugh": {
+            "left": 2,
+            "right": 2,
+            "width": 32,
+            "open": 10,
+            "leftOpen": 6,
+            "rightOpen": 6,
+            "group": "Smiles"
+        },
         "smirk": {
             "left": 4,
             "right": 0,
