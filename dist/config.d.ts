@@ -175,6 +175,7 @@ export type Patch<T> = T extends object ? {
 } : T;
 /** Any part of a FaceConfig. null in a mood removes that choice, as if the mood had left it out. */
 export type FaceConfigPatch = Patch<FaceConfig>;
+/** The face's settings and states as they come, kept in defaultConfig.json. */
 export declare const defaultConfig: FaceConfig;
 /** A deep copy of config with patch laid over it. */
 export declare function mergeConfig(config: FaceConfig, patch: FaceConfigPatch): FaceConfig;
