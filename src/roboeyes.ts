@@ -270,7 +270,7 @@ export class RoboEyes {
     moods: Record<string, MoodConfig> = structuredClone(defaultConfig.moods);
     mood = 'default'; // the mood set last
     eyeState = 'open';
-    mouthState = 'neutral';
+    mouthState = 'softSmile';
     look = defaultConfig.look;
     eyesOverride: Patch<EyeState> | undefined; // the mood's changes to the eye state, while that state is in use
     mouthOverride: Partial<MouthState> | undefined; // the same for the mouth state
@@ -673,7 +673,7 @@ export class RoboEyes {
     }
 
     // Set mood expression. Port: a mood constant (SAD...) or the name of any entry in moods. The mood picks the face
-    // states: its eye and mouth states (open and neutral if it leaves them out, with its override), its toggles
+    // states: its eye and mouth states (open and softSmile if it leaves them out, with its override), its toggles
     // (their defaults if it leaves them out) and its look (the look stays as it is if the mood has none).
     setMood(mood: Mood | string) {
         const name = typeof mood === 'number' ? MOOD_NAMES[mood] : mood;
@@ -683,7 +683,7 @@ export class RoboEyes {
             this[field] = m[key] ?? this.toggleDefaults[key];
         }
         this.applyEyes(m.eyes ?? 'open', m.override?.eyes ?? undefined);
-        this.applyMouth(m.mouth ?? 'neutral', m.override?.mouth ?? undefined);
+        this.applyMouth(m.mouth ?? 'softSmile', m.override?.mouth ?? undefined);
         if (m.look) this.setLook(m.look);
     }
 
@@ -861,8 +861,10 @@ export class RoboEyes {
 
     // Port: room reserved under the eyes for the mouth (0 when the mouth is off)
     getMouthSpace() {
-        // Port prototype: plus the most any mouth state opens, so an open mouth never leaves the screen
-        const open = Math.max(0, ...Object.values(this.mouthStates).map((s) => Math.max(s.open ?? 0, s.leftOpen ?? 0, s.rightOpen ?? 0)), ...Object.values(this.mouthOverride ? [this.mouthOverride] : []).map((s) => s.open ?? 0));
+        // Plus the most any mouth state reaches below the line, so an open mouth never leaves the screen: its opening, or
+        // a corner's opening below that corner's own bend
+        const reach = (s: Partial<MouthState>) => Math.max(s.open ?? 0, (s.leftOpen ?? 0) - (s.left ?? 0), (s.rightOpen ?? 0) - (s.right ?? 0));
+        const open = Math.max(0, ...Object.values(this.mouthStates).map(reach), ...(this.mouthOverride ? [reach(this.mouthOverride)] : []));
         return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + open : 0;
     }
 

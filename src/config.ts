@@ -124,7 +124,7 @@ export interface Modes {
 }
 
 /**
- * A mood: face states by name, and toggles. An eye or mouth state it leaves out is "open" or "neutral"; a toggle
+ * A mood: face states by name, and toggles. An eye or mouth state it leaves out is "open" or "softSmile"; a toggle
  * it leaves out is its default from FaceConfig.toggles; a look it leaves out stays where it is.
  */
 export interface MoodConfig extends Partial<Toggles> {

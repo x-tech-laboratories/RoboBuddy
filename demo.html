@@ -187,7 +187,7 @@
             eyes: { left: { width: 30, height: 30 }, right: { width: 30, height: 30 }, spacing: 14 },
             mouth: { gap: 14, width: 45 },
             mouthStates: {
-                neutral: { width: 18 }, smile: { width: 26 }, softSmile: { width: 22 }, slack: { width: 10 },
+                smile: { width: 26 }, softSmile: { width: 22 }, slack: { width: 10 },
                 frown: { width: 16 }, flat: { width: 14 }, smirk: { width: 18 }, wavy: { width: 18 },
             },
         });
@@ -323,7 +323,7 @@
         // [key, label, choices, what leaving it out means]
         const recipe = [
             ['eyes', 'Eyes', () => Object.keys(face.eyeStates), 'open'],
-            ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'neutral'],
+            ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'softSmile'],
             ['look', 'Look', () => Object.keys(face.looks), 'keep'],
             ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null],
         ];

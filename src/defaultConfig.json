@@ -239,11 +239,6 @@
         }
     },
     "mouthStates": {
-        "neutral": {
-            "left": 2,
-            "right": 2,
-            "width": 20
-        },
         "flat": {
             "left": 0,
             "right": 0,
@@ -259,13 +254,6 @@
             "left": 3,
             "right": -3,
             "width": 20
-        },
-        "open": {
-            "left": 1,
-            "right": 1,
-            "width": 24,
-            "open": 6,
-            "group": "Open"
         },
         "wide": {
             "left": 4,
@@ -286,12 +274,11 @@
             "rightOpen": 10,
             "group": "Open"
         },
-        "shout": {
-            "left": -6,
-            "right": -6,
-            "width": 28,
-            "open": 9,
-            "group": "Open"
+        "softSmile": {
+            "left": 3,
+            "right": 3,
+            "width": 24,
+            "group": "Smiles"
         },
         "smile": {
             "left": 4,
@@ -299,10 +286,11 @@
             "width": 28,
             "group": "Smiles"
         },
-        "softSmile": {
-            "left": 3,
-            "right": 3,
+        "openSmile": {
+            "left": 1,
+            "right": 1,
             "width": 24,
+            "open": 6,
             "group": "Smiles"
         },
         "smirk": {
@@ -322,6 +310,15 @@
             "left": -3,
             "right": -3,
             "width": 18,
+            "group": "Frowns"
+        },
+        "openFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6,
             "group": "Frowns"
         }
     },
@@ -420,7 +417,7 @@
         },
         "happy": {
             "eyes": "happy",
-            "mouth": "open",
+            "mouth": "openSmile",
             "group": "Happy"
         },
         "smirk": {
@@ -489,7 +486,7 @@
         },
         "furious": {
             "eyes": "angry",
-            "mouth": "shout",
+            "mouth": "openFrown",
             "look": "wander",
             "curious": true,
             "shake": true,

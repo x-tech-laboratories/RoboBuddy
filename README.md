@@ -42,8 +42,8 @@ A face is built in layers:
      shut, and auto blink and wander wait until it ends), `winkLeft` or `winkRight` (that eye, as seen on screen,
      stays closed and auto blink blinks only the other), `peekLeft` or `peekRight` (the other eye shut, that one
      with happy sad's lids, the top tilted the other way) or `confused` (the left lid lowered, like one eyebrow raised)
-   - a mouth state, `setMouthState(name)`: `neutral`, `smile`, `softSmile`, `slack`, `frown`, `flat`, `surprised`,
-     `smirk`, `wavy`, or the open mouths `open`, `wide`, `gasp` and `shout`
+   - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `surprised`,
+     `wavy`, or the open mouths `openSmile`, `openFrown`, `wide` and `gasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
@@ -54,7 +54,7 @@ A face is built in layers:
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
    `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. A
-   eye or mouth state it leaves out is `open` or `neutral`, a toggle it leaves out is its default, and
+   eye or mouth state it leaves out is `open` or `softSmile`, a toggle it leaves out is its default, and
    a look it leaves out stays where it is. Setting a face state yourself lasts until the next mood.
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth and
    smooth motion), which no mood changes.
