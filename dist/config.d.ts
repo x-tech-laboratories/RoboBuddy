@@ -27,9 +27,8 @@ export interface EyeState {
      *  stays closed, a wink, and auto blink blinks only the other. */
     closed: boolean | 'left' | 'right';
 }
-/** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
- *  shakeHead and nod settings). */
-export declare const HEAD_STATES: readonly ["still", "shakeHead", "slowShakeHead", "nod"];
+/** What the whole face does: hold still, or keep nodding (at the nod settings). */
+export declare const HEAD_STATES: readonly ["still", "nod"];
 export type HeadState = typeof HEAD_STATES[number];
 /** A mouth state, in screen pixels. */
 export interface MouthState {
@@ -60,6 +59,8 @@ export interface LookState {
         reach: number;
         holdMs: number;
     };
+    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
+    shakeHead?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
     group?: string;
 }

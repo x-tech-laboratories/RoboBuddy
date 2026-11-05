@@ -342,6 +342,24 @@
                 "holdMs": 600
             },
             "group": "Moving"
+        },
+        "shakeHeadUp": {
+            "x": 0.5,
+            "y": 0,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadDown": {
+            "x": 0.5,
+            "y": 1,
+            "shakeHead": true,
+            "group": "Shaking head"
         }
     },
     "moods": {
