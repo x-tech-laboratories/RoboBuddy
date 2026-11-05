@@ -279,6 +279,39 @@ const defaultConfigJson = {
             "right": -3,
             "width": 20
         },
+        "open": {
+            "left": 1,
+            "right": 1,
+            "width": 24,
+            "open": 6,
+            "group": "Open"
+        },
+        "wide": {
+            "left": 4,
+            "right": 4,
+            "width": 32,
+            "open": 8,
+            "leftOpen": 3,
+            "rightOpen": 3,
+            "group": "Open"
+        },
+        "gasp": {
+            "left": 0,
+            "right": 0,
+            "width": 14,
+            "ownWidth": true,
+            "open": 10,
+            "leftOpen": 10,
+            "rightOpen": 10,
+            "group": "Open"
+        },
+        "shout": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 9,
+            "group": "Open"
+        },
         "smile": {
             "left": 4,
             "right": 4,
@@ -388,7 +421,7 @@ const defaultConfigJson = {
         },
         "happy": {
             "eyes": "happy",
-            "mouth": "smile",
+            "mouth": "open",
             "group": "Happy"
         },
         "smirk": {
@@ -430,7 +463,7 @@ const defaultConfigJson = {
             "mouth": "wavy"
         },
         "surprised": {
-            "mouth": "surprised"
+            "mouth": "gasp"
         },
         "sad": {
             "eyes": "sad",
@@ -444,7 +477,7 @@ const defaultConfigJson = {
         },
         "scared": {
             "eyes": "sad",
-            "mouth": "wavy",
+            "mouth": "gasp",
             "look": "dart",
             "sweat": true,
             "shake": true,
@@ -457,7 +490,7 @@ const defaultConfigJson = {
         },
         "furious": {
             "eyes": "angry",
-            "mouth": "frown",
+            "mouth": "shout",
             "look": "wander",
             "curious": true,
             "shake": true,
@@ -644,12 +677,17 @@ class CanvasDisplay {
         ctx.fill();
         ctx.restore();
     }
-    strokeLine(path, thickness) {
+    strokeLine(path, thickness, closed = false) {
         if (thickness <= 0)
             return;
         const ctx = this.ctx;
         ctx.beginPath();
         tracePath(ctx, path);
+        if (closed) {
+            ctx.closePath();
+            ctx.fillStyle = this.main;
+            ctx.fill();
+        }
         ctx.strokeStyle = this.main;
         ctx.lineWidth = thickness;
         ctx.lineCap = 'round';
@@ -795,6 +833,13 @@ class RoboEyes {
         this.mouthLeftNext = 0;
         this.mouthRightCurrent = 0;
         this.mouthRightNext = 0;
+        // Port prototype: the mouth's centre is a rectangle that opens downwards, and each corner opens by its own amount
+        this.mouthOpenCurrent = 0;
+        this.mouthOpenNext = 0;
+        this.mouthLeftOpenCurrent = 0;
+        this.mouthLeftOpenNext = 0;
+        this.mouthRightOpenCurrent = 0;
+        this.mouthRightOpenNext = 0;
         //*********************************************************************************************
         //  Macro Animations
         //*********************************************************************************************
@@ -961,6 +1006,9 @@ class RoboEyes {
         this.mouthStates = {};
         for (const [name, state] of Object.entries(c.mouthStates)) {
             this.mouthStates[name] = { left: state.left ?? 0, right: state.right ?? 0 };
+            for (const key of ['open', 'leftOpen', 'rightOpen'])
+                if (state[key])
+                    this.mouthStates[name][key] = state[key];
             if (state.width !== undefined && state.width !== null)
                 this.mouthStates[name].width = state.width;
             if (state.ownWidth)
@@ -1170,6 +1218,9 @@ class RoboEyes {
         this.mouthWidthNext = ownWidth ? shape.width : this.mouthWidth;
         this.mouthLeftNext = shape.left;
         this.mouthRightNext = shape.right;
+        this.mouthOpenNext = Math.max(0, shape.open ?? 0);
+        this.mouthLeftOpenNext = Math.max(0, shape.leftOpen ?? 0);
+        this.mouthRightOpenNext = Math.max(0, shape.rightOpen ?? 0);
         this.mouthFollowLook = !!shape.followLook;
     }
     // Set predefined position. Port: each position is a look (center, N, NE ...), so this is setLook() by another name.
@@ -1260,7 +1311,9 @@ class RoboEyes {
     }
     // Port: room reserved under the eyes for the mouth (0 when the mouth is off)
     getMouthSpace() {
-        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 : 0;
+        // Port prototype: plus the most any mouth state opens, so an open mouth never leaves the screen
+        const open = Math.max(0, ...Object.values(this.mouthStates).map((s) => Math.max(s.open ?? 0, s.leftOpen ?? 0, s.rightOpen ?? 0)), ...Object.values(this.mouthOverride ? [this.mouthOverride] : []).map((s) => s.open ?? 0));
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + open : 0;
     }
     //*********************************************************************************************
     //  BASIC ANIMATION METHODS
@@ -1378,6 +1431,9 @@ class RoboEyes {
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
         this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext);
         this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext);
+        this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, this.mouthOpenNext);
+        this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, this.mouthLeftOpenNext);
+        this.mouthRightOpenCurrent = this.ease(this.mouthRightOpenCurrent, this.mouthRightOpenNext);
         //// APPLYING MACRO ANIMATIONS ////
         if (this.autoblinker && !this.eyesClosed) {
             if (millis() >= this.blinktimer) {
@@ -1710,14 +1766,18 @@ class RoboEyes {
             [left, right] = [left + (right - left) * mirror, right + (left - right) * mirror];
         }
         const liftL = clamp(left), liftR = clamp(right);
-        this.display.strokeLine({
-            start: [x0, y - liftL],
-            segments: [
-                { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
-                { to: [x1 - curl, y] },
-                { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
-            ],
-        }, thickness);
+        // The top edge is the line as before. With any opening, the bottom edge runs back under it, lower by the
+        // corner's own opening at each end and by the centre's opening in between; a closed mouth is just the line.
+        const open = this.mouthOpenCurrent, openL = this.mouthLeftOpenCurrent, openR = this.mouthRightOpenCurrent;
+        const segments = [
+            { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
+            { to: [x1 - curl, y] },
+            { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
+        ];
+        if (open > 0.05 || openL > 0.05 || openR > 0.05) {
+            segments.push({ to: [x1, y - liftR + openR] }, { control: [x1 - curl * 0.4, y + open], to: [x1 - curl, y + open] }, { to: [x0 + curl, y + open] }, { control: [x0 + curl * 0.4, y + open], to: [x0, y - liftL + openL] });
+        }
+        this.display.strokeLine({ start: [x0, y - liftL], segments }, thickness, segments.length > 3);
     }
 }
 const LEVEL = { height: 0, angle: 0, curve: 0 };

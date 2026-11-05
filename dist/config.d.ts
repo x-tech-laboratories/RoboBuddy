@@ -41,6 +41,12 @@ export interface MouthState {
     /** Always use this state's width, even with FaceConfig.mouth.moodWidth off: for a mouth whose length is the
      *  point of it, like surprised. */
     ownWidth?: boolean;
+    /** Prototype: how far the middle of the mouth opens downwards, making its line a rectangle that many pixels taller. */
+    open?: number;
+    /** How far the left corner opens downwards on its own, the same way. 0 keeps that corner a plain line end. */
+    leftOpen?: number;
+    /** How far the right corner opens downwards on its own. */
+    rightOpen?: number;
     /** Mirror the corners when the eyes look left, so a lopsided mouth (smirk) curls up on the side away from where
      *  they look. Looking right or ahead leaves it as set. */
     followLook?: boolean;

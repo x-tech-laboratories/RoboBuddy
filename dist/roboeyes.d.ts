@@ -29,8 +29,9 @@ export interface Display {
     clearDisplay(): void;
     /** A filled rounded rectangle in the main colour, minus any cut-outs (the eyelids). */
     fillRoundRect(x: number, y: number, w: number, h: number, r: number, cutouts?: Cutout[]): void;
-    /** A line of the given thickness with round ends, through the given points, in the main colour. */
-    strokeLine(points: MouthPath, thickness: number): void;
+    /** A line of the given thickness with round ends, through the given points, in the main colour. closed: join the
+     *  end back to the start and fill what it encloses, so the line becomes the edge of a solid shape. */
+    strokeLine(points: MouthPath, thickness: number, closed?: boolean): void;
     display(): void;
 }
 export type Cutout = {
@@ -72,7 +73,7 @@ export declare class CanvasDisplay implements Display {
     private resize;
     clearDisplay(): void;
     fillRoundRect(x: number, y: number, w: number, h: number, r: number, cutouts?: Cutout[]): void;
-    strokeLine(path: MouthPath, thickness: number): void;
+    strokeLine(path: MouthPath, thickness: number, closed?: boolean): void;
     display(): void;
 }
 /** An eyelid in pixels: how far it comes in at the inner and outer corner, and how much further in the middle. */
@@ -171,6 +172,12 @@ export declare class RoboEyes {
     mouthLeftNext: number;
     mouthRightCurrent: number;
     mouthRightNext: number;
+    mouthOpenCurrent: number;
+    mouthOpenNext: number;
+    mouthLeftOpenCurrent: number;
+    mouthLeftOpenNext: number;
+    mouthRightOpenCurrent: number;
+    mouthRightOpenNext: number;
     hFlicker: boolean;
     hFlickerAlternate: boolean;
     hFlickerAmplitude: number;

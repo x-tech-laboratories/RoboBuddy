@@ -259,6 +259,39 @@
             "right": -3,
             "width": 20
         },
+        "open": {
+            "left": 1,
+            "right": 1,
+            "width": 24,
+            "open": 6,
+            "group": "Open"
+        },
+        "wide": {
+            "left": 4,
+            "right": 4,
+            "width": 32,
+            "open": 8,
+            "leftOpen": 3,
+            "rightOpen": 3,
+            "group": "Open"
+        },
+        "gasp": {
+            "left": 0,
+            "right": 0,
+            "width": 14,
+            "ownWidth": true,
+            "open": 10,
+            "leftOpen": 10,
+            "rightOpen": 10,
+            "group": "Open"
+        },
+        "shout": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 9,
+            "group": "Open"
+        },
         "smile": {
             "left": 4,
             "right": 4,
@@ -368,7 +401,7 @@
         },
         "happy": {
             "eyes": "happy",
-            "mouth": "smile",
+            "mouth": "open",
             "group": "Happy"
         },
         "smirk": {
@@ -410,7 +443,7 @@
             "mouth": "wavy"
         },
         "surprised": {
-            "mouth": "surprised"
+            "mouth": "gasp"
         },
         "sad": {
             "eyes": "sad",
@@ -424,7 +457,7 @@
         },
         "scared": {
             "eyes": "sad",
-            "mouth": "wavy",
+            "mouth": "gasp",
             "look": "dart",
             "sweat": true,
             "shake": true,
@@ -437,7 +470,7 @@
         },
         "furious": {
             "eyes": "angry",
-            "mouth": "frown",
+            "mouth": "shout",
             "look": "wander",
             "curious": true,
             "shake": true,
