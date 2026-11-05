@@ -273,6 +273,7 @@ export const defaultConfig: FaceConfig = {
         default: {},
         happy: { eyes: 'happy', mouth: 'smile', group: 'Happy' },
         smirk: { mouth: 'smirk', override: { eyes: { top: { height: 0.5 } } }, group: 'Happy' },
+        bored: { mouth: 'flat', override: { eyes: { top: { height: 0.5 } } } },
         asleep: { eyes: 'sleepy', mouth: 'surprised', look: 'center', autoblink: false, group: 'Sleepy' },
         happyAsleep: { eyes: 'closed', mouth: 'softSmile', group: 'Sleepy' },
         sleepy: { eyes: 'sleepy', look: 'center', autoblink: false, group: 'Sleepy' },
