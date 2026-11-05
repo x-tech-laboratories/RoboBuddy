@@ -1,0 +1,37 @@
+# Rebuilds dist/ (which demo.html loads) and the readme's mood screenshots after every push to main, and commits
+# the result back. The commit carries [skip ci], so it does not trigger another run.
+name: Regenerate demo and screenshots
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      # Screenshots only change when the library does, and they are not byte-for-byte repeatable.
+      - name: Regenerate screenshots
+        if: ${{ github.event.before != '0000000000000000000000000000000000000000' }}
+        run: |
+          if ! git diff --quiet "${{ github.event.before }}" HEAD -- src scripts; then
+            node scripts/screenshots.mjs
+          fi
+      - name: Commit regenerated files
+        run: |
+          git add dist screenshots
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate the demo build and screenshots [skip ci]"
+          git push
