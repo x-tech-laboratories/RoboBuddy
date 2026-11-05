@@ -43,7 +43,7 @@ A face is built in layers:
      stays closed and auto blink blinks only the other), `peekLeft` or `peekRight` (the other eye shut, that one
      with happy sad's lids, the top tilted the other way) or `confused` (the left lid lowered, like one eyebrow raised)
    - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `surprised`,
-     `wavy`, or the open mouths `openSmile`, `laugh`, `openFrown`, `wide` and `gasp`
+     `wavy`, or the open mouths `openSmile`, `wideSmile`, `laugh`, `openFrown` and `gasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
