@@ -21,8 +21,8 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 
 /*
  * A face is built in layers:
- * - face states, the building blocks: a head state for the whole face (still, or nodding), an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander, or shake the head) and four toggles (auto blink, curious, sweat and shake).
+ * - face states, the building blocks: an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
+ *   bend), a look (where the eyes point, or wander, or shake the head or nod) and four toggles (auto blink, curious, sweat and shake).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -63,10 +63,6 @@ export interface EyeState {
     closed: boolean | 'left' | 'right';
 }
 
-/** What the whole face does: hold still, or keep nodding (at the nod settings). */
-export const HEAD_STATES = ['still', 'nod'] as const;
-export type HeadState = typeof HEAD_STATES[number];
-
 /** A mouth state, in screen pixels. */
 export interface MouthState {
     /** How far the left corner bends: positive up (smile), negative down (frown). */
@@ -102,6 +98,8 @@ export interface LookState {
     dart?: { reach: number; holdMs: number };
     /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
     shakeHead?: boolean;
+    /** Keep nodding while looking here (at the nod settings), until another look is set. */
+    nod?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
     group?: string;
 }
@@ -130,8 +128,6 @@ export interface Modes {
  * it leaves out is its default from FaceConfig.toggles; a look it leaves out stays where it is.
  */
 export interface MoodConfig extends Partial<Toggles> {
-    /** One of HEAD_STATES; still if left out. */
-    head?: HeadState;
     eyes?: string;
     mouth?: string;
     look?: string;

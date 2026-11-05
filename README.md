@@ -37,8 +37,6 @@ overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for 
 A face is built in layers:
 
 1. **Face states**, the building blocks. Each can be set on its own:
-   - a head state for the whole head, `setHead(name)`: `still`, or `nod`, which keeps nodding until another head
-     state is set (at the `nod` settings)
    - an eye state, `setEyes(name)`: `open`, `sad`, `angry`, `happy`, `happySad` (sad top lids over happy bottom
      ones), `sleepy` (heavy lids, nearly meeting), `closed` (closed keeps the eyes
      shut, and auto blink and wander wait until it ends), `winkLeft` or `winkRight` (that eye, as seen on screen,
@@ -49,13 +47,14 @@ A face is built in layers:
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
-     look is set).
+     look is set), or `nodLeft`, `nodCenter` or `nodRight` (looking left, ahead or right while nodding, at the `nod`
+     settings, until another look is set).
      `setPosition()` and `setIdleMode()` set looks too
    - toggles, `setAutoblinker`, `setCuriosity`, `setSweat` and `setShake` (the eyes jitter left and right; the
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
    `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. A
-   head, eye or mouth state it leaves out is `still`, `open` or `neutral`, a toggle it leaves out is its default, and
+   eye or mouth state it leaves out is `open` or `neutral`, a toggle it leaves out is its default, and
    a look it leaves out stays where it is. Setting a face state yourself lasts until the next mood.
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth and
    smooth motion), which no mood changes.
@@ -129,7 +128,7 @@ when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `sur
 where they look. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
 `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
-(slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking while the eyes look there.
+(slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking, and `nod: true` keeps it nodding, while the eyes look there.
 
 A mood names its face states, sets toggles, and can change its eye and mouth states for itself only with `override`:
 
