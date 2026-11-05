@@ -199,6 +199,19 @@ export declare class RoboEyes {
     shakeHead: boolean;
     shakeHeadAmplitude: number;
     shakeHeadSpeed: number;
+    mouthTalk: boolean;
+    mouthTalkLevel: number;
+    mouthTalkTimer: number;
+    talkSyllableMs: number;
+    talkVariationMs: number;
+    talkPauseChance: number;
+    talkOpen: number;
+    talkLipLift: number;
+    talkCornerSway: number;
+    mouthTalkCorner: number[];
+    mouthTalkSway: number[];
+    mouthTalkCornerTimer: number[];
+    mouthLipCurrent: number;
     nod: boolean;
     nodAmplitude: number;
     nodSpeed: number;
@@ -279,6 +292,7 @@ export declare class RoboEyes {
     setMouth(mouthBit: boolean): void;
     setMouthWidth(width: number): void;
     setMouthCorners(left: number, right?: number): void;
+    setTalk(talkBit: boolean): void;
     setMouthGap(gap: number): void;
     getScreenConstraint_X(): number;
     getScreenConstraint_Y(): number;

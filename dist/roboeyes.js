@@ -31,7 +31,7 @@
  *   is sharp at any size. Instead of painting the eyelids over the eyes in the background colour,
  *   it cuts them out of the eyes, which gives clean edges and lets the background be transparent.
  * - A face is composed of face states: an eye state (a top and bottom lid, or closed), a mouth
- *   state, a look (a position, or wander) and toggles (curious, sweat, shake). Moods are named
+ *   state, a look (a position, or wander) and toggles (curious, sweat, shake, talk). Moods are named
  *   combinations of them (config.ts). A lid has a height, an angle and a curve, so the original's
  *   tired, angry and happy eyelids are three eye states among many. The tired mood is called sad
  *   here (TIRED still works). Sad and angry are exactly the original triangles; happy is a curve
@@ -82,7 +82,7 @@ const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'happ
 // Port: the position constants name these entries of FaceConfig.looks
 const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
-const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker' };
+const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
 export class CanvasDisplay {
     constructor(canvas, options = {}) {
@@ -351,6 +351,21 @@ export class RoboEyes {
         this.shakeHead = false;
         this.shakeHeadAmplitude = defaultConfig.shakeHead.amplitude; // port: how far the face swings to each side
         this.shakeHeadSpeed = defaultConfig.shakeHead.speed; // how much of the remaining way it goes each frame
+        // Port: the talk toggle - the opening flaps at random, as a fraction of the mouth state's opening (or talkOpen)
+        this.mouthTalk = false;
+        this.mouthTalkLevel = 1;
+        this.mouthTalkTimer = 0; // when the next syllable is due
+        this.talkSyllableMs = defaultConfig.talk.syllableMs;
+        this.talkVariationMs = defaultConfig.talk.variationMs;
+        this.talkPauseChance = defaultConfig.talk.pauseChance;
+        this.talkOpen = defaultConfig.talk.open; // how far a mouth state with no opening of its own opens
+        this.talkLipLift = defaultConfig.talk.lipLift;
+        this.talkCornerSway = defaultConfig.talk.cornerSway;
+        // Each corner keeps its own time: how much of the opening it follows, and how far it sways, until its timer is up
+        this.mouthTalkCorner = [1, 1];
+        this.mouthTalkSway = [0, 0];
+        this.mouthTalkCornerTimer = [0, 0];
+        this.mouthLipCurrent = 0; // how far the upper lip is raised
         // Port: animation - nod head: eyes and mouth swinging down and up
         this.nod = false;
         this.nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
@@ -420,6 +435,7 @@ export class RoboEyes {
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
+            talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway },
             nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
             shake: { amplitude: this.hFlickerAmplitude },
             modes: { cyclops: this.cyclops, mouth: this.mouth, smooth: this.precision === 'smooth' },
@@ -470,6 +486,12 @@ export class RoboEyes {
         this.laughAnimationDuration = c.laugh.durationMs;
         this.shakeHeadAmplitude = c.shakeHead.amplitude;
         this.shakeHeadSpeed = Math.max(0.05, Math.min(0.8, c.shakeHead.speed));
+        this.talkSyllableMs = Math.max(20, c.talk.syllableMs);
+        this.talkVariationMs = Math.max(0, c.talk.variationMs);
+        this.talkPauseChance = Math.max(0, Math.min(1, c.talk.pauseChance));
+        this.talkOpen = Math.max(0, c.talk.open);
+        this.talkLipLift = Math.max(0, c.talk.lipLift);
+        this.talkCornerSway = Math.max(0, c.talk.cornerSway);
         this.nodAmplitude = c.nod.amplitude;
         this.nodSpeed = Math.max(0.05, Math.min(0.8, c.nod.speed));
         this.hFlickerAmplitude = c.shake.amplitude;
@@ -765,6 +787,10 @@ export class RoboEyes {
         this.mouthLeftNext = left;
         this.mouthRightNext = right;
     }
+    // Port: the talk toggle - the mouth keeps opening and closing, whatever the mouth state. The next mood sets it again.
+    setTalk(talkBit) {
+        this.mouthTalk = talkBit;
+    }
     // Port: how high the mouth sits, as the space in pixels between the bottom of the eyes and the mouth
     setMouthGap(gap) {
         this.mouthGapNext = Math.max(0, gap);
@@ -788,7 +814,7 @@ export class RoboEyes {
         // a corner's opening below that corner's own bend
         const reach = (s) => Math.max(s.open ?? 0, (s.leftOpen ?? 0) - (s.left ?? 0), (s.rightOpen ?? 0) - (s.right ?? 0));
         const open = Math.max(0, ...Object.values(this.mouthStates).map(reach), ...(this.mouthOverride ? [reach(this.mouthOverride)] : []));
-        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + open : 0;
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 + Math.max(open, this.mouthTalk ? this.talkOpen : 0) : 0;
     }
     //*********************************************************************************************
     //  BASIC ANIMATION METHODS
@@ -892,11 +918,34 @@ export class RoboEyes {
         // Port: mouth length, height and corners ease the same way
         this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext);
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
-        this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext);
-        this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext);
-        this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, this.mouthOpenNext);
-        this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, this.mouthLeftOpenNext);
-        this.mouthRightOpenCurrent = this.ease(this.mouthRightOpenCurrent, this.mouthRightOpenNext);
+        // Port: a talking mouth picks a new opening each syllable, sometimes shut for a gap between words. The upper lip
+        // lifts with the opening, and each corner follows it only loosely, on its own timing, and sways a little.
+        const now = millis();
+        if (this.mouthTalk) {
+            if (now >= this.mouthTalkTimer) {
+                this.mouthTalkLevel = Math.random() < this.talkPauseChance ? 0 : 0.35 + Math.random() * 0.65;
+                this.mouthTalkTimer = now + this.talkSyllableMs + random(this.talkVariationMs);
+            }
+            for (const side of [0, 1]) {
+                if (now < this.mouthTalkCornerTimer[side])
+                    continue;
+                this.mouthTalkCorner[side] = 0.6 + Math.random() * 0.4;
+                this.mouthTalkSway[side] = (Math.random() * 2 - 1) * this.talkCornerSway;
+                this.mouthTalkCornerTimer[side] = now + this.talkSyllableMs * (0.6 + Math.random() * 0.8) + random(this.talkVariationMs);
+            }
+        }
+        const talk = this.mouthTalk ? this.mouthTalkLevel : 1;
+        const [cornerL, cornerR] = this.mouthTalk ? this.mouthTalkCorner : [1, 1];
+        const [swayL, swayR] = this.mouthTalk ? this.mouthTalkSway.map(sway => sway * talk) : [0, 0];
+        this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext + swayL);
+        this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext + swayR);
+        this.mouthLipCurrent = this.ease(this.mouthLipCurrent, this.mouthTalk ? talk * this.talkLipLift : 0);
+        // A mouth state with no opening of its own opens by talkOpen in the middle and less at the corners (as wideSmile does)
+        const bare = this.mouthTalk && !(this.mouthOpenNext > 0 || this.mouthLeftOpenNext > 0 || this.mouthRightOpenNext > 0);
+        const [open, openL, openR] = bare ? [this.talkOpen, this.talkOpen * 0.4, this.talkOpen * 0.4] : [this.mouthOpenNext, this.mouthLeftOpenNext, this.mouthRightOpenNext];
+        this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, open * talk);
+        this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, openL * talk * cornerL);
+        this.mouthRightOpenCurrent = this.ease(this.mouthRightOpenCurrent, openR * talk * cornerR);
         //// APPLYING MACRO ANIMATIONS ////
         if (this.autoblinker && !this.eyesClosed) {
             if (millis() >= this.blinktimer) {
@@ -1211,13 +1260,14 @@ export class RoboEyes {
         // corner's own opening at each end and by the centre's opening in between; a closed mouth is just the line.
         const open = this.mouthOpenCurrent, openL = this.mouthLeftOpenCurrent, openR = this.mouthRightOpenCurrent;
         const k = 0.4; // where each curl's control point sits along it
+        const yt = y - this.mouthLipCurrent; // the top edge, raised by the upper lip
         if (open <= 0.05 && openL <= 0.05 && openR <= 0.05) {
             this.display.strokeLine({
-                start: [x0, y - liftL],
+                start: [x0, yt - liftL],
                 segments: [
-                    { control: [x0 + curl * k, y], to: [x0 + curl, y] },
-                    { to: [x1 - curl, y] },
-                    { control: [x1 - curl * k, y], to: [x1, y - liftR] },
+                    { control: [x0 + curl * k, yt], to: [x0 + curl, yt] },
+                    { to: [x1 - curl, yt] },
+                    { control: [x1 - curl * k, yt], to: [x1, yt - liftR] },
                 ],
             }, thickness);
             return;
@@ -1231,7 +1281,7 @@ export class RoboEyes {
             const r = Math.max(0, Math.min(this.mouthRadius, own / 2));
             // how far along a curl its cut is, so the bend takes about r of it
             const cut = (chord) => (r > 0.05 && chord > 0 ? Math.min(0.8, r / (chord * 1.1)) : 0);
-            const topIn = [xi, y], topCtl = [xc, y], corner = [xe, y - lift];
+            const topIn = [xi, yt], topCtl = [xc, yt], corner = [xe, yt - lift];
             const botIn = [xi, y + open], botCtl = [xc, y + open], bottom = [xe, y - lift + own];
             const tu = cut(Math.hypot(curl, lift)), bu = cut(Math.hypot(curl, y + open - bottom[1]));
             const nodes = [

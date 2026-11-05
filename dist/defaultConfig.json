@@ -48,6 +48,14 @@
         "amplitude": 6,
         "speed": 0.5
     },
+    "talk": {
+        "syllableMs": 110,
+        "variationMs": 90,
+        "pauseChance": 0.2,
+        "open": 8,
+        "lipLift": 2,
+        "cornerSway": 1.5
+    },
     "shake": {
         "amplitude": 2
     },
@@ -61,7 +69,8 @@
         "autoblink": false,
         "curious": false,
         "sweat": false,
-        "shake": false
+        "shake": false,
+        "talk": false
     },
     "eyeStates": {
         "open": {

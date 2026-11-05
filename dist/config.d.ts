@@ -78,6 +78,8 @@ export interface Toggles {
     sweat: boolean;
     /** The eyes jitter left and right every frame (the original's horizontal flicker). */
     shake: boolean;
+    /** Whatever the mouth state, the mouth keeps opening and closing at random, like syllables (at the talk settings). */
+    talk: boolean;
 }
 /** Parts of the face itself, which stay the same whatever the mood. */
 export interface Modes {
@@ -156,6 +158,18 @@ export interface FaceConfig {
     shakeHead: {
         amplitude: number;
         speed: number;
+    };
+    /** A talking mouth: it picks a new opening every syllableMs plus up to variationMs more; pauseChance (0 to 1) is how
+     *  often that opening is shut, like a gap between words. open is how far a mouth state with no
+     *  opening of its own opens, in pixels, and lipLift how far, the upper lip rises
+     *  with a full opening, and cornerSway how far each corner wanders, on its own timing, as the mouth talks. */
+    talk: {
+        syllableMs: number;
+        variationMs: number;
+        pauseChance: number;
+        open: number;
+        lipLift: number;
+        cornerSway: number;
     };
     nod: {
         amplitude: number;
