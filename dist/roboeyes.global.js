@@ -111,8 +111,7 @@ const defaultConfig = {
         smirk: { mouth: 'smirk', override: { eyes: { top: { height: 0.5 } } }, group: 'Happy' },
         bored: { mouth: 'flat', override: { eyes: { top: { height: 0.5 } } } },
         asleep: { eyes: 'sleepy', mouth: 'surprised', look: 'center', autoblink: false, group: 'Sleepy' },
-        happyAsleep: { eyes: 'closed', mouth: 'softSmile', group: 'Sleepy' },
-        sleepy: { eyes: 'sleepy', look: 'center', autoblink: false, group: 'Sleepy' },
+        happyAsleep: { eyes: 'sleepy', look: 'center', autoblink: false, group: 'Sleepy' },
         confused: { eyes: 'confused', mouth: 'wavy' },
         surprised: { mouth: 'surprised' },
         sad: { eyes: 'sad', mouth: 'slack', group: 'Upset' },
@@ -200,7 +199,7 @@ const ANGRY = 2;
 const HAPPY = 3;
 const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
 const ASLEEP = 5; // port: sleepy eyes looking ahead, the surprised mouth's dot, no blinking (not in the original)
-const HAPPY_ASLEEP = 6; // port: eyes closed, smiling (not in the original)
+const HAPPY_ASLEEP = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
 const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
 const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
