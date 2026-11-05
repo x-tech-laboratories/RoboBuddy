@@ -106,7 +106,7 @@ const defaultConfig = {
         dart: { x: 0.5, y: 0.5, dart: { reach: 0.5, holdMs: 600 }, group: 'Moving' },
     },
     moods: {
-        default: {},
+        default: { look: 'wander' },
         happy: { eyes: 'happy', mouth: 'smile', group: 'Happy' },
         smirk: { mouth: 'smirk', override: { eyes: { top: { height: 0.5 } } }, group: 'Happy' },
         bored: { mouth: 'flat', override: { eyes: { top: { height: 0.5 } } } },
