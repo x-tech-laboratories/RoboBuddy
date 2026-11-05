@@ -277,6 +277,7 @@ export const defaultConfig: FaceConfig = {
         surprised: { mouth: 'surprised' },
         sad: { eyes: 'sad', mouth: 'slack', group: 'Upset' },
         worried: { eyes: 'sad', mouth: 'wavy', sweat: true, group: 'Upset' },
+        scared: { eyes: 'sad', mouth: 'wavy', look: 'dart', sweat: true, shake: true, group: 'Upset' },
         angry: { eyes: 'angry', mouth: 'frown', group: 'Upset/Angry' },
         furious: { eyes: 'angry', mouth: 'frown', look: 'wander', curious: true, shake: true, group: 'Upset/Angry' },
     },

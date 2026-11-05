@@ -159,8 +159,8 @@ still be unique within its kind.
 - New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (closed eyes,
   flat mouth), `HAPPY_ASLEEP` (closed eyes, soft smile), `WORRIED` (sad eyes, wavy mouth, sweat) and `FURIOUS`
   (angry eyes, frown, wandering, curious and shaking), and, without constants, `sleepy` (sleepy eyes looking
-  straight ahead, auto blink off), `confused` (confused eyes, wavy mouth) and `surprised` (open eyes, the
-  surprised mouth's dot).
+  straight ahead, auto blink off), `confused` (confused eyes, wavy mouth), `surprised` (open eyes, the
+  surprised mouth's dot) and `scared` (worried, but shaking and darting its eyes from side to side).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.
 - Closed eyes are 3 pixels tall, the mouth's thickness, instead of the original's 1 (`closedHeight`).
