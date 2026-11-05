@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-/** What the whole face does: hold still, or keep shaking its head or nodding (at the shakeHead and nod settings). */
-export const FACE_STATES = ['still', 'shakeHead', 'nod'];
+/** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
+ *  shakeHead and nod settings). */
+export const FACE_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'];
 const level = { height: 0, angle: 0, curve: 0 };
 export const defaultConfig = {
     frameRate: 50,

@@ -37,8 +37,9 @@ overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for 
 A face is built in layers:
 
 1. **Face states**, the building blocks. Each can be set on its own:
-   - a face state for the whole face, `setFace(name)`: `still`, or `shakeHead` or `nod`, which keep shaking the head
-     or nodding until another face state is set (at the `shakeHead` and `nod` settings)
+   - a face state for the whole face, `setFace(name)`: `still`, or `shakeHead`, `slowShakeHead` (a head shake at
+     half the rate) or `nod`, which keep shaking the head or nodding until another face state is set (at the
+     `shakeHead` and `nod` settings)
    - an eye state, `setEyes(name)`: `open`, `sad`, `angry`, `happy`, `happySad` (sad top lids over happy bottom
      ones), `sleepy` (heavy lids, nearly meeting), `closed` (closed keeps the eyes
      shut, and auto blink and wander wait until it ends), `winkLeft` or `winkRight` (that eye, as seen on screen,

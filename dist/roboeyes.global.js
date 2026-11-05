@@ -18,8 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-/** What the whole face does: hold still, or keep shaking its head or nodding (at the shakeHead and nod settings). */
-const FACE_STATES = ['still', 'shakeHead', 'nod'];
+/** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
+ *  shakeHead and nod settings). */
+const FACE_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'];
 const level = { height: 0, angle: 0, curve: 0 };
 const defaultConfig = {
     frameRate: 50,
@@ -1038,7 +1039,8 @@ class RoboEyes {
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
         // Port: a face state that shakes or nods starts the swing, which then keeps going until the face state changes
-        if (this.faceState === 'shakeHead' && !this.shakeHead)
+        const shaking = this.faceState === 'shakeHead' || this.faceState === 'slowShakeHead';
+        if (shaking && !this.shakeHead)
             this.shakeHead = true;
         if (this.faceState === 'nod' && !this.nod)
             this.nod = true;
@@ -1065,7 +1067,7 @@ class RoboEyes {
                 this.shakeHeadAnimationTimer = millis();
                 this.shakeHeadToggle = false;
             }
-            else if (millis() >= this.shakeHeadAnimationTimer + this.shakeHeadAnimationDuration && this.faceState !== 'shakeHead') {
+            else if (millis() >= this.shakeHeadAnimationTimer + this.shakeHeadAnimationDuration && !shaking) {
                 this.shakeXNext = 0;
                 this.shakeHeadToggle = true;
                 this.shakeHead = false;
@@ -1087,7 +1089,9 @@ class RoboEyes {
             }
         }
         // Port: each swing eases like a blink, and turns back once it arrives
-        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.blinkSpeed);
+        // Port: the slow head shake swings at half the speed of a head shake
+        const shakeSpeed = this.faceState === 'slowShakeHead' ? this.blinkSpeed / 2 : this.blinkSpeed;
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext, shakeSpeed);
         if (this.shakeHead && this.shakeX === this.shakeXNext)
             this.shakeXNext = -this.shakeXNext;
         this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.blinkSpeed);
