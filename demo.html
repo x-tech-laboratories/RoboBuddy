@@ -101,7 +101,9 @@
             <legend>Mouth</legend>
             <button data-toggle="mouth" class="on">Mouth</button>
             <label>Length <span id="w-out"></span><input type="range" id="mouth-width" min="0" max="40" step="1" /></label>
-            <label>Corners <span id="c-out"></span><input type="range" id="mouth-corners" min="-8" max="8" step="1" /></label>
+            <label>Height <span id="g-out"></span><input type="range" id="mouth-gap" min="0" max="16" step="1" /></label>
+            <label>Left corner <span id="l-out"></span><input type="range" id="mouth-left" min="-8" max="8" step="1" /></label>
+            <label>Right corner <span id="r-out"></span><input type="range" id="mouth-right" min="-8" max="8" step="1" /></label>
             <button data-do="mouth-reset">Back to mood</button>
             <button data-do="mouth-hide">Hide</button>
         </fieldset>
@@ -123,12 +125,12 @@
         visor.setHeight(30, 30);
         visor.setBorderradius(8, 8);
         visor.setSpacebetween(14);
-        visor.mouthGap = 5;
+        visor.setMouthGap(5);
         visor.moodMouth = {
-            [R.DEFAULT]: { width: 18, corners: 2 },
-            [R.HAPPY]: { width: 26, corners: 4 },
-            [R.TIRED]: { width: 10, corners: -1 },
-            [R.ANGRY]: { width: 16, corners: -3 },
+            [R.DEFAULT]: { width: 18, left: 2, right: 2 },
+            [R.HAPPY]: { width: 26, left: 4, right: 4 },
+            [R.TIRED]: { width: 10, left: -1, right: -1 },
+            [R.ANGRY]: { width: 16, left: -3, right: -3 },
         };
         visor.setMood(R.DEFAULT);
         visor.begin(112, 80, 50);
@@ -185,12 +187,18 @@
 
         // The sliders drive the OLED's mouth in its own pixels; the visor follows in proportion.
         const widthInput = document.getElementById('mouth-width');
-        const cornersInput = document.getElementById('mouth-corners');
+        const gapInput = document.getElementById('mouth-gap');
+        const leftInput = document.getElementById('mouth-left');
+        const rightInput = document.getElementById('mouth-right');
         function syncSliders() {
             widthInput.value = oled.mouthWidthNext;
-            cornersInput.value = oled.mouthCornersNext;
+            gapInput.value = oled.mouthGapNext;
+            leftInput.value = oled.mouthLeftNext;
+            rightInput.value = oled.mouthRightNext;
             document.getElementById('w-out').textContent = `(${oled.mouthWidthNext})`;
-            document.getElementById('c-out').textContent = `(${oled.mouthCornersNext})`;
+            document.getElementById('g-out').textContent = `(${oled.mouthGapNext})`;
+            document.getElementById('l-out').textContent = `(${oled.mouthLeftNext})`;
+            document.getElementById('r-out').textContent = `(${oled.mouthRightNext})`;
         }
         widthInput.oninput = () => {
             const w = Number(widthInput.value);
@@ -198,10 +206,16 @@
             visor.setMouthWidth(Math.round(w * 0.9));
             syncSliders();
         };
-        cornersInput.oninput = () => {
-            const c = Number(cornersInput.value);
-            oled.setMouthCorners(c);
-            visor.setMouthCorners(Math.round(c * 0.85));
+        gapInput.oninput = () => {
+            const g = Number(gapInput.value);
+            oled.setMouthGap(g);
+            visor.setMouthGap(Math.round(g * 0.85));
+            syncSliders();
+        };
+        leftInput.oninput = rightInput.oninput = () => {
+            const l = Number(leftInput.value), r = Number(rightInput.value);
+            oled.setMouthCorners(l, r);
+            visor.setMouthCorners(Math.round(l * 0.85), Math.round(r * 0.85));
             syncSliders();
         };
         syncSliders();

@@ -35,9 +35,13 @@
  *   OLED frame for frame. "smooth" uses fractional values for softer motion on large screens.
  * - begin() also re-centres the eyes for the new screen size (the original only does that on the
  *   next setPosition() call).
- * - New: a mouth. It is always a single line under the eyes; only its length and how far its two
- *   corners bend up or down change. It follows the eyes, eases like every other value, takes its
- *   shape from the mood, and can shrink away completely (setMouthWidth(0)).
+ * - New: a mouth. It is always a single line under the eyes; only its length, how far below the
+ *   eyes it sits, and how far each of its two corners bends up or down change. It follows the eyes,
+ *   eases like every other value, takes its shape from the mood, and can shrink away completely
+ *   (setMouthWidth(0)).
+ * - anim_laugh() and anim_confused() swing the eyes with the same halfway-per-frame easing as a
+ *   blink, instead of jumping every frame, and the mouth does not follow that shake: it bounces on
+ *   its own while laughing and holds still while confused.
  * ---------------------------------------------------------------------------------------------
  */
 
@@ -202,8 +206,10 @@ function millis() {
 export interface MouthShape {
     /** Length of the line in screen pixels. 0 makes the mouth disappear. */
     width: number;
-    /** How far both corners bend, in screen pixels: positive up (smile), negative down (frown). */
-    corners: number;
+    /** How far the left corner bends, in screen pixels: positive up (smile), negative down (frown). */
+    left: number;
+    /** How far the right corner bends, the same way. */
+    right: number;
 }
 
 export class RoboEyes {
@@ -297,18 +303,22 @@ export class RoboEyes {
 
     mouth = true; // draw a mouth under the eyes
     mouthThickness = 3; // line thickness in pixels
-    mouthGap = 6; // space between the bottom of the eyes and the mouth
+    // Space between the bottom of the eyes and the mouth, which sets how high the mouth sits
+    mouthGapCurrent = 6;
+    mouthGapNext = 6;
     /** The mouth each mood asks for. Change these to retune the expressions. */
     moodMouth: Record<Mood, MouthShape> = {
-        [DEFAULT]: { width: 20, corners: 2 }, // short, with a hint of a smile
-        [HAPPY]: { width: 28, corners: 4 }, // wider, corners up
-        [TIRED]: { width: 12, corners: -1 }, // short, corners slack
-        [ANGRY]: { width: 18, corners: -3 }, // corners down
+        [DEFAULT]: { width: 20, left: 2, right: 2 }, // short, with a hint of a smile
+        [HAPPY]: { width: 28, left: 4, right: 4 }, // wider, corners up
+        [TIRED]: { width: 12, left: -1, right: -1 }, // short, corners slack
+        [ANGRY]: { width: 18, left: -3, right: -3 }, // corners down
     };
     mouthWidthCurrent = 0; // starts closed and grows in with the eyes
     mouthWidthNext = this.moodMouth[DEFAULT].width;
-    mouthCornersCurrent = 0;
-    mouthCornersNext = this.moodMouth[DEFAULT].corners;
+    mouthLeftCurrent = 0;
+    mouthLeftNext = this.moodMouth[DEFAULT].left;
+    mouthRightCurrent = 0;
+    mouthRightNext = this.moodMouth[DEFAULT].right;
 
     //*********************************************************************************************
     //  Macro Animations
@@ -341,12 +351,23 @@ export class RoboEyes {
     confusedAnimationTimer = 0;
     confusedAnimationDuration = 500;
     confusedToggle = true;
+    confusedAmplitude = 20; // port: how far the eyes swing to each side
 
     // Animation - eyes laughing: eyes shaking up and down
     laugh = false;
     laughAnimationTimer = 0;
     laughAnimationDuration = 500;
     laughToggle = true;
+    laughAmplitude = 5; // port: how far the eyes swing up and down
+    laughMouthAmplitude = 2; // port: how far the mouth bounces, on its own, while laughing
+
+    // Port: the laugh and confused swings, drawn on top of the eye and mouth positions
+    shakeX = 0;
+    shakeXNext = 0;
+    shakeY = 0;
+    shakeYNext = 0;
+    mouthShakeY = 0;
+    mouthShakeYNext = 0;
 
     // Animation - sweat on the forehead
     sweat = false;
@@ -504,7 +525,8 @@ export class RoboEyes {
         }
         const shape = this.moodMouth[mood] ?? this.moodMouth[DEFAULT];
         this.mouthWidthNext = shape.width;
-        this.mouthCornersNext = shape.corners;
+        this.mouthLeftNext = shape.left;
+        this.mouthRightNext = shape.right;
     }
 
     // Set predefined position
@@ -609,8 +631,15 @@ export class RoboEyes {
     }
 
     // Port: how far the mouth corners bend, in pixels. Positive up (smile), negative down (frown).
-    setMouthCorners(corners: number) {
-        this.mouthCornersNext = corners;
+    // With one argument, both corners.
+    setMouthCorners(left: number, right = left) {
+        this.mouthLeftNext = left;
+        this.mouthRightNext = right;
+    }
+
+    // Port: how high the mouth sits, as the space in pixels between the bottom of the eyes and the mouth
+    setMouthGap(gap: number) {
+        this.mouthGapNext = Math.max(0, gap);
     }
 
     //*********************************************************************************************
@@ -631,7 +660,7 @@ export class RoboEyes {
 
     // Port: room reserved under the eyes for the mouth (0 when the mouth is off)
     getMouthSpace() {
-        return this.mouth ? this.mouthGap + this.mouthThickness + 3 : 0;
+        return this.mouth ? this.mouthGapNext + this.mouthThickness + 3 : 0;
     }
 
     //*********************************************************************************************
@@ -736,9 +765,11 @@ export class RoboEyes {
         // Right eye border radius
         this.eyeRborderRadiusCurrent = int((this.eyeRborderRadiusCurrent + this.eyeRborderRadiusNext) / 2);
 
-        // Port: mouth length and corners ease the same way
+        // Port: mouth length, height and corners ease the same way
         this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext);
-        this.mouthCornersCurrent = this.ease(this.mouthCornersCurrent, this.mouthCornersNext);
+        this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
+        this.mouthLeftCurrent = this.ease(this.mouthLeftCurrent, this.mouthLeftNext);
+        this.mouthRightCurrent = this.ease(this.mouthRightCurrent, this.mouthRightNext);
 
         //// APPLYING MACRO ANIMATIONS ////
 
@@ -750,30 +781,47 @@ export class RoboEyes {
         }
 
         // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
+        // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
+        // and the mouth bounces the other way on its own.
         if (this.laugh) {
             if (this.laughToggle) {
-                this.setVFlicker(true, 5);
+                this.shakeYNext = -this.laughAmplitude;
+                this.mouthShakeYNext = this.laughMouthAmplitude;
                 this.laughAnimationTimer = millis();
                 this.laughToggle = false;
             } else if (millis() >= this.laughAnimationTimer + this.laughAnimationDuration) {
-                this.setVFlicker(false, 0);
+                this.shakeYNext = 0;
+                this.mouthShakeYNext = 0;
                 this.laughToggle = true;
                 this.laugh = false;
             }
         }
 
         // Confused - eyes shaking left and right for the duration defined by confusedAnimationDuration (default = 500ms)
+        // Port: instead of the original's per-frame horizontal flicker, the eyes swing at the pace of a blink,
+        // and the mouth stays where it is.
         if (this.confused) {
             if (this.confusedToggle) {
-                this.setHFlicker(true, 20);
+                this.shakeXNext = -this.confusedAmplitude;
                 this.confusedAnimationTimer = millis();
                 this.confusedToggle = false;
             } else if (millis() >= this.confusedAnimationTimer + this.confusedAnimationDuration) {
-                this.setHFlicker(false, 0);
+                this.shakeXNext = 0;
                 this.confusedToggle = true;
                 this.confused = false;
             }
         }
+
+        // Port: each swing eases like a blink, and turns back once it arrives
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext);
+        if (this.confused && this.shakeX === this.shakeXNext) this.shakeXNext = -this.shakeXNext;
+        this.shakeY = this.ease(this.shakeY, this.shakeYNext);
+        // The mouth turns back with the eyes, so it bounces at the same pace, but the other way and by its own amount
+        if (this.laugh && this.shakeY === this.shakeYNext) {
+            this.shakeYNext = -this.shakeYNext;
+            this.mouthShakeYNext = -this.mouthShakeYNext;
+        }
+        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext);
 
         // Idle - eyes moving to random positions on screen
         if (this.idle) {
@@ -832,8 +880,9 @@ export class RoboEyes {
 
         // The original draws each eye, then paints the eyelids over it in the background colour.
         // Here the same eyelid shapes are cut out of the eye instead.
-        const lx = this.eyeLx, ly = this.eyeLy, lw = this.eyeLwidthCurrent, lh = this.eyeLheightCurrent;
-        const rx = this.eyeRx, ry = this.eyeRy, rw = this.eyeRwidthCurrent, rh = this.eyeRheightCurrent;
+        // Port: the laugh and confused swings move the drawn eyes only, so the mouth keeps its own place.
+        const lx = this.eyeLx + this.shakeX, ly = this.eyeLy + this.shakeY, lw = this.eyeLwidthCurrent, lh = this.eyeLheightCurrent;
+        const rx = this.eyeRx + this.shakeX, ry = this.eyeRy + this.shakeY, rw = this.eyeRwidthCurrent, rh = this.eyeRheightCurrent;
         const tiredH = this.eyelidsTiredHeight, angryH = this.eyelidsAngryHeight, happyH = this.eyelidsHappyBottomOffset;
         const leftCuts: Cutout[] = [];
         const rightCuts: Cutout[] = [];
@@ -925,8 +974,9 @@ export class RoboEyes {
 
     /**
      * The mouth is one line, centred under the eyes, that moves with them (blinks leave it alone,
-     * since the eyes close around their centre). Its middle stays straight; only the two corners
-     * bend, by the same amount, over the outer quarter of the line on each side.
+     * since the eyes close around their centre, and so do the laugh and confused swings). Its middle
+     * stays straight; only the two corners bend, each by its own amount, over the outer quarter of
+     * the line on each side.
      */
     drawMouth() {
         if (!this.mouth) return;
@@ -939,17 +989,18 @@ export class RoboEyes {
         const rightEdge = this.cyclops ? this.eyeLx + this.eyeLwidthCurrent : this.eyeRx + this.eyeRwidthCurrent;
         const cx = (leftEdge + rightEdge) / 2;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
-        const y = eyeCentre + this.eyeLheightDefault / 2 + this.mouthGap + this.mouthThickness / 2;
+        const y = eyeCentre + this.eyeLheightDefault / 2 + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY;
 
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * 0.25; // how much of each end bends
-        const lift = Math.max(-curl, Math.min(curl, this.mouthCornersCurrent)); // corners never bend further than they are long
+        const clamp = (lift: number) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long
+        const liftL = clamp(this.mouthLeftCurrent), liftR = clamp(this.mouthRightCurrent);
         this.display.strokeLine({
-            start: [x0, y - lift],
+            start: [x0, y - liftL],
             segments: [
                 { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
                 { to: [x1 - curl, y] },
-                { control: [x1 - curl * 0.4, y], to: [x1, y - lift] },
+                { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
             ],
         }, thickness);
     }

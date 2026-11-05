@@ -67,8 +67,10 @@ export declare class CanvasDisplay implements Display {
 export interface MouthShape {
     /** Length of the line in screen pixels. 0 makes the mouth disappear. */
     width: number;
-    /** How far both corners bend, in screen pixels: positive up (smile), negative down (frown). */
-    corners: number;
+    /** How far the left corner bends, in screen pixels: positive up (smile), negative down (frown). */
+    left: number;
+    /** How far the right corner bends, the same way. */
+    right: number;
 }
 export declare class RoboEyes {
     display: Display;
@@ -130,13 +132,16 @@ export declare class RoboEyes {
     eyelidsHappyBottomOffsetNext: number;
     mouth: boolean;
     mouthThickness: number;
-    mouthGap: number;
+    mouthGapCurrent: number;
+    mouthGapNext: number;
     /** The mouth each mood asks for. Change these to retune the expressions. */
     moodMouth: Record<Mood, MouthShape>;
     mouthWidthCurrent: number;
     mouthWidthNext: number;
-    mouthCornersCurrent: number;
-    mouthCornersNext: number;
+    mouthLeftCurrent: number;
+    mouthLeftNext: number;
+    mouthRightCurrent: number;
+    mouthRightNext: number;
     hFlicker: boolean;
     hFlickerAlternate: boolean;
     hFlickerAmplitude: number;
@@ -155,10 +160,19 @@ export declare class RoboEyes {
     confusedAnimationTimer: number;
     confusedAnimationDuration: number;
     confusedToggle: boolean;
+    confusedAmplitude: number;
     laugh: boolean;
     laughAnimationTimer: number;
     laughAnimationDuration: number;
     laughToggle: boolean;
+    laughAmplitude: number;
+    laughMouthAmplitude: number;
+    shakeX: number;
+    shakeXNext: number;
+    shakeY: number;
+    shakeYNext: number;
+    mouthShakeY: number;
+    mouthShakeYNext: number;
     sweat: boolean;
     sweatBorderradius: number;
     sweat1XPosInitial: number;
@@ -208,7 +222,8 @@ export declare class RoboEyes {
     setSweat(sweatBit: boolean): void;
     setMouth(mouthBit: boolean): void;
     setMouthWidth(width: number): void;
-    setMouthCorners(corners: number): void;
+    setMouthCorners(left: number, right?: number): void;
+    setMouthGap(gap: number): void;
     getScreenConstraint_X(): number;
     getScreenConstraint_Y(): number;
     getMouthSpace(): number;
@@ -222,8 +237,9 @@ export declare class RoboEyes {
     private ease;
     /**
      * The mouth is one line, centred under the eyes, that moves with them (blinks leave it alone,
-     * since the eyes close around their centre). Its middle stays straight; only the two corners
-     * bend, by the same amount, over the outer quarter of the line on each side.
+     * since the eyes close around their centre, and so do the laugh and confused swings). Its middle
+     * stays straight; only the two corners bend, each by its own amount, over the outer quarter of
+     * the line on each side.
      */
     drawMouth(): void;
 }

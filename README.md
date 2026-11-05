@@ -28,15 +28,19 @@ overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for 
 
 ## The mouth
 
-Always a single line under the eyes. Only two things change: its length and how far its corners bend.
+Always a single line under the eyes. Only three things change: its length, its height and how far each corner bends.
 
 - `setMouthWidth(px)`: length; `0` shrinks it away completely (it thins as it goes, so no dot is left)
-- `setMouthCorners(px)`: positive bends the corners up, negative down; the middle stays straight
+- `setMouthGap(px)`: height, as the space between the bottom of the eyes and the mouth
+- `setMouthCorners(left, right)`: positive bends a corner up, negative down; the middle stays straight. With one
+  argument, both corners bend the same
 - `setMouth(ON | OFF)`: with the mouth on, a strip under the eyes is reserved so it never leaves the screen
-- `setMood()` also sets the mouth, from `eyes.moodMouth` (change those values to retune each mood)
-- `mouthThickness`, `mouthGap`: line weight and space below the eyes
+- `setMood()` also sets the mouth, from `eyes.moodMouth` (`{ width, left, right }` per mood; change those values to
+  retune each mood)
+- `mouthThickness`: line weight
 
-It moves with the eyes (looking around, laughing, confused) and eases the same way they do.
+It moves with the eyes when they look around, and eases the same way they do. It does not follow the laugh and
+confused swings: while laughing it bounces on its own (`laughMouthAmplitude`), and while confused it holds still.
 
 ## Differences from the Arduino version
 
@@ -45,6 +49,9 @@ It moves with the eyes (looking around, laughing, confused) and eases the same w
 - Eyelids are cut out of the eyes rather than painted over them in the background colour: the same shapes, but with
   clean edges and support for a transparent background.
 - `begin()` re-centres the eyes for the new screen size.
+- `anim_laugh()` and `anim_confused()` swing the eyes with the same halfway-per-frame easing as a blink, turning back
+  each time a swing arrives, instead of jumping every frame. `laughAmplitude` and `confusedAmplitude` set how far.
+  `setVFlicker()` and `setHFlicker()` still shiver every frame, as in the original.
 
 ## Build
 
