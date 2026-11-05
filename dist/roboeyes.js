@@ -768,7 +768,7 @@ export class RoboEyes {
     getScreenConstraint_Y() {
         // using default height here, because height will vary when blinking and in curious mode
         // Port: minus the strip the mouth needs, so it always stays on screen.
-        return this.screenHeight - this.eyeLheightDefault - this.getMouthSpace();
+        return this.screenHeight - Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault) - this.getMouthSpace();
     }
     // Port: room reserved under the eyes for the mouth (0 when the mouth is off)
     getMouthSpace() {
@@ -1027,8 +1027,10 @@ export class RoboEyes {
         // The original draws each eye, then paints the eyelids over it in the background colour.
         // Here the eyelid shapes are cut out of the eye instead.
         // Port: the swings move the drawn eyes only; drawMouth() adds the mouth's own share.
-        const lx = this.eyeLx + this.shakeX, ly = this.eyeLy + this.shakeY, lw = this.eyeLwidthCurrent, lh = this.eyeLheightCurrent;
-        const rx = this.eyeRx + this.shakeX, ry = this.eyeRy + this.shakeY, rw = this.eyeRwidthCurrent, rh = this.eyeRheightCurrent;
+        // Port: eyes of different heights share their bottom edge, so the shorter one sits lower
+        const tallest = Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault);
+        const lx = this.eyeLx + this.shakeX, ly = this.eyeLy + this.shakeY + (tallest - this.eyeLheightDefault), lw = this.eyeLwidthCurrent, lh = this.eyeLheightCurrent;
+        const rx = this.eyeRx + this.shakeX, ry = this.eyeRy + this.shakeY + (tallest - this.eyeRheightDefault), rw = this.eyeRwidthCurrent, rh = this.eyeRheightCurrent;
         const leftCuts = [];
         const rightCuts = [];
         if (!this.cyclops) {
