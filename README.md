@@ -37,9 +37,8 @@ overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for 
 A face is built in layers:
 
 1. **Face states**, the building blocks. Each can be set on its own:
-   - a head state for the whole head, `setHead(name)`: `still`, or `shakeHead`, `slowShakeHead` (a head shake at
-     half the rate) or `nod`, which keep shaking the head or nodding until another face state is set (at the
-     `shakeHead` and `nod` settings)
+   - a head state for the whole head, `setHead(name)`: `still`, or `nod`, which keeps nodding until another head
+     state is set (at the `nod` settings)
    - an eye state, `setEyes(name)`: `open`, `sad`, `angry`, `happy`, `happySad` (sad top lids over happy bottom
      ones), `sleepy` (heavy lids, nearly meeting), `closed` (closed keeps the eyes
      shut, and auto blink and wander wait until it ends), `winkLeft` or `winkRight` (that eye, as seen on screen,
@@ -48,7 +47,9 @@ A face is built in layers:
    - a mouth state, `setMouthState(name)`: `neutral`, `smile`, `softSmile`, `slack`, `frown`, `flat`, `surprised`,
      `smirk` or `wavy`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
-     mode, which the face starts with) or `dart` (glancing from side to side, for suspicious or shifty).
+     mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
+     `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
+     look is set).
      `setPosition()` and `setIdleMode()` set looks too
    - toggles, `setAutoblinker`, `setCuriosity`, `setSweat` and `setShake` (the eyes jitter left and right; the
      original's `setHFlicker`)
@@ -126,7 +127,7 @@ when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `sur
 where they look. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
 `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
-(slow for suspicious, quick for shifty).
+(slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking while the eyes look there.
 
 A mood names its face states, sets toggles, and can change its eye and mouth states for itself only with `override`:
 

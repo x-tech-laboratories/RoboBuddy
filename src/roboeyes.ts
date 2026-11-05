@@ -550,6 +550,7 @@ export class RoboEyes {
             this.looks[name] = { x: look.x ?? 0.5, y: look.y ?? 0.5 };
             if (look.group) this.looks[name].group = look.group;
             if (look.wander) this.looks[name].wander = true;
+            if (look.shakeHead) this.looks[name].shakeHead = true;
             // dart: true (as the demo's checkbox sends) gets the default reach and hold
             if (look.dart) this.looks[name].dart = { reach: 0.5, holdMs: 600, ...(typeof look.dart === 'object' ? withoutNulls(look.dart) : {}) };
         }
@@ -671,8 +672,8 @@ export class RoboEyes {
         if (m.look) this.setLook(m.look);
     }
 
-    // Port: set what the whole face does (see HEAD_STATES): hold still, or keep shaking its head or nodding.
-    // Changing it stops the swing straight away (a one-shot anim_shakeHead() or anim_nod() still runs its time).
+    // Port: set what the whole face does (see HEAD_STATES): hold still, or keep nodding.
+    // Changing it stops the nod straight away (a one-shot anim_nod() still runs its time). Shaking the head is a look.
     setHead(name: HeadState) {
         if (HEAD_STATES.includes(name)) this.headState = name;
     }
@@ -982,8 +983,8 @@ export class RoboEyes {
         // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
-        // Port: a face state that shakes or nods starts the swing, which then keeps going until the face state changes
-        const shaking = this.headState === 'shakeHead' || this.headState === 'slowShakeHead';
+        // Port: a look that shakes the head or a head state that nods starts the swing, which then keeps going until it changes
+        const shaking = !!this.looks[this.look]?.shakeHead;
         if (shaking && !this.shakeHead) this.shakeHead = true;
         if (this.headState === 'nod' && !this.nod) this.nod = true;
 
@@ -1032,9 +1033,7 @@ export class RoboEyes {
         }
 
         // Port: each swing eases like a blink, and turns back once it arrives
-        // Port: the slow head shake swings at half the speed of a head shake
-        const shakeSpeed = this.headState === 'slowShakeHead' ? this.blinkSpeed / 2 : this.blinkSpeed;
-        this.shakeX = this.ease(this.shakeX, this.shakeXNext, shakeSpeed);
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.blinkSpeed);
         if (this.shakeHead && this.shakeX === this.shakeXNext) this.shakeXNext = -this.shakeXNext;
         this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.blinkSpeed);
         this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, this.blinkSpeed);

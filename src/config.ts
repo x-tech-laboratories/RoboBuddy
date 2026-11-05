@@ -21,9 +21,8 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 
 /*
  * A face is built in layers:
- * - face states, the building blocks: a face state for the whole face (still, or shaking its head or
- *   nodding), an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander) and four toggles (auto blink, curious, sweat and shake).
+ * - face states, the building blocks: a head state for the whole face (still, or nodding), an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
+ *   bend), a look (where the eyes point, or wander, or shake the head) and four toggles (auto blink, curious, sweat and shake).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -64,9 +63,8 @@ export interface EyeState {
     closed: boolean | 'left' | 'right';
 }
 
-/** What the whole face does: hold still, or keep shaking its head (slowShakeHead at half the rate) or nodding (at the
- *  shakeHead and nod settings). */
-export const HEAD_STATES = ['still', 'shakeHead', 'slowShakeHead', 'nod'] as const;
+/** What the whole face does: hold still, or keep nodding (at the nod settings). */
+export const HEAD_STATES = ['still', 'nod'] as const;
 export type HeadState = typeof HEAD_STATES[number];
 
 /** A mouth state, in screen pixels. */
@@ -96,6 +94,8 @@ export interface LookState {
     /** Instead of holding still, glance from side to side: to x - reach, then x + reach, holding each glance
      *  for holdMs. Slow for suspicious, quick for shifty. */
     dart?: { reach: number; holdMs: number };
+    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
+    shakeHead?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
     group?: string;
 }
