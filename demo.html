@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>RoboEyes (web port) with mouth</title>
+    <style>
+        :root { --lit: #8fd6ff; --screen: #0b1322; --body: #0088ff; }
+        body { margin: 0; padding: 24px; background: #16181d; color: #cfd3da; font: 14px/1.4 system-ui, sans-serif; }
+        h1 { font-size: 16px; margin: 0 0 16px; color: #fff; }
+        .stage { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .oled { width: 384px; height: 192px; background: #000; border-radius: 8px; box-shadow: 0 0 0 6px #2a2d34; }
+        .mascot { position: relative; width: 300px; height: 300px; }
+        .mascot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+        /* The canvas sits exactly over the visor's screen: the head rect after the 1.15 scale. */
+        .mascot canvas {
+            position: absolute; left: 24.84%; top: 39.84%; width: 50.31%; height: 35.94%;
+            border-radius: 21% / 30%;
+            filter: drop-shadow(0 0 3px var(--lit));
+        }
+        .label { font-size: 12px; color: #8b93a1; text-align: center; margin-top: 6px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 980px; }
+        fieldset { border: 1px solid #2c3038; border-radius: 8px; padding: 10px 12px; margin: 0; }
+        legend { color: #fff; padding: 0 4px; }
+        button { background: #262a32; color: #e4e7ec; border: 1px solid #3a3f49; border-radius: 6px; padding: 5px 9px; margin: 2px; cursor: pointer; font: inherit; }
+        button.on { background: #0b5fae; border-color: #1d7fd8; }
+        .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+        label { display: block; margin: 4px 0; }
+        input[type=range] { width: 100%; }
+    </style>
+</head>
+
+<body>
+    <h1>RoboEyes, ported to the web, with a mouth</h1>
+
+    <div class="stage">
+        <div>
+            <canvas class="oled" id="oled"></canvas>
+            <div class="label">Original look: 128×64 OLED</div>
+        </div>
+        <div>
+            <div class="mascot">
+                <svg viewBox="0 0 64 64" aria-hidden="true">
+                    <path fill="var(--body)" stroke="var(--body)" stroke-width="6" stroke-linejoin="round" d="M60 32 46 56.25 18 56.25 4 32 18 7.75 46 7.75Z" />
+                    <g transform="translate(32 37) scale(1.15) translate(-32 -37)" fill="var(--screen)">
+                        <rect x="14" y="33" width="4.5" height="8" rx="2" />
+                        <rect x="45.5" y="33" width="4.5" height="8" rx="2" />
+                        <rect x="31" y="21" width="2" height="7" />
+                        <circle cx="32" cy="19.5" r="3" />
+                        <circle cx="32" cy="19.5" r="1.5" fill="var(--lit)" />
+                        <rect x="18" y="27" width="28" height="20" rx="6" />
+                    </g>
+                </svg>
+                <canvas id="visor" role="img" aria-label="CODEX"></canvas>
+            </div>
+            <div class="label">In the CODEX visor: 112×80, transparent background</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <fieldset>
+            <legend>Mood</legend>
+            <div data-group="mood">
+                <button data-mood="DEFAULT" class="on">Default</button>
+                <button data-mood="HAPPY">Happy</button>
+                <button data-mood="TIRED">Tired</button>
+                <button data-mood="ANGRY">Angry</button>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Look</legend>
+            <div class="grid3" data-group="pos">
+                <button data-pos="NW">NW</button><button data-pos="N">N</button><button data-pos="NE">NE</button>
+                <button data-pos="W">W</button><button data-pos="DEFAULT" class="on">•</button><button data-pos="E">E</button>
+                <button data-pos="SW">SW</button><button data-pos="S">S</button><button data-pos="SE">SE</button>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Animations</legend>
+            <button data-do="blink">Blink</button>
+            <button data-do="wink">Wink</button>
+            <button data-do="anim_laugh">Laugh</button>
+            <button data-do="anim_confused">Confused</button>
+            <button data-do="close">Close</button>
+            <button data-do="open">Open</button>
+        </fieldset>
+
+        <fieldset>
+            <legend>Modes</legend>
+            <button data-toggle="autoblinker" class="on">Auto blink</button>
+            <button data-toggle="idle">Idle</button>
+            <button data-toggle="curious">Curious</button>
+            <button data-toggle="cyclops">Cyclops</button>
+            <button data-toggle="sweat">Sweat</button>
+            <button data-toggle="smooth">Smooth motion</button>
+        </fieldset>
+
+        <fieldset>
+            <legend>Mouth</legend>
+            <button data-toggle="mouth" class="on">Mouth</button>
+            <label>Length <span id="w-out"></span><input type="range" id="mouth-width" min="0" max="40" step="1" /></label>
+            <label>Corners <span id="c-out"></span><input type="range" id="mouth-corners" min="-8" max="8" step="1" /></label>
+            <button data-do="mouth-reset">Back to mood</button>
+            <button data-do="mouth-hide">Hide</button>
+        </fieldset>
+    </div>
+
+    <script src="dist/roboeyes.global.js"></script>
+    <script>
+        const R = window.RoboEyesLib;
+
+        // The OLED keeps the library's defaults; only the mouth is new.
+        const oled = new R.RoboEyes(document.getElementById('oled'));
+        oled.setDisplayColors('#000', '#fff');
+        oled.begin(128, 64, 50);
+
+        // The visor: a 112 x 80 screen with slightly smaller eyes, a transparent background and the lit colour.
+        const visor = new R.RoboEyes(document.getElementById('visor'));
+        visor.setDisplayColors('transparent', getComputedStyle(document.documentElement).getPropertyValue('--lit').trim());
+        visor.setWidth(30, 30);
+        visor.setHeight(30, 30);
+        visor.setBorderradius(8, 8);
+        visor.setSpacebetween(14);
+        visor.mouthGap = 5;
+        visor.moodMouth = {
+            [R.DEFAULT]: { width: 18, corners: 2 },
+            [R.HAPPY]: { width: 26, corners: 4 },
+            [R.TIRED]: { width: 10, corners: -1 },
+            [R.ANGRY]: { width: 16, corners: -3 },
+        };
+        visor.setMood(R.DEFAULT);
+        visor.begin(112, 80, 50);
+
+        const all = [oled, visor];
+        const each = (fn) => all.forEach(fn);
+        each((eyes) => { eyes.setAutoblinker(R.ON, 3, 2); eyes.start(); });
+
+        const select = (group, button) => {
+            document.querySelectorAll(`[data-group="${group}"] button`).forEach((b) => b.classList.toggle('on', b === button));
+        };
+
+        document.querySelectorAll('[data-mood]').forEach((button) => button.onclick = () => {
+            each((eyes) => eyes.setMood(R[button.dataset.mood]));
+            select('mood', button);
+            syncSliders();
+        });
+
+        document.querySelectorAll('[data-pos]').forEach((button) => button.onclick = () => {
+            each((eyes) => { eyes.setIdleMode(R.OFF); eyes.setPosition(R[button.dataset.pos]); });
+            document.querySelector('[data-toggle="idle"]').classList.remove('on');
+            select('pos', button);
+        });
+
+        const actions = {
+            blink: (eyes) => eyes.blink(),
+            wink: (eyes) => eyes.blink(false, true),
+            anim_laugh: (eyes) => eyes.anim_laugh(),
+            anim_confused: (eyes) => eyes.anim_confused(),
+            close: (eyes) => eyes.close(),
+            open: (eyes) => eyes.open(),
+            'mouth-reset': (eyes) => eyes.setMood(eyes.happy ? R.HAPPY : eyes.tired ? R.TIRED : eyes.angry ? R.ANGRY : R.DEFAULT),
+            'mouth-hide': (eyes) => eyes.setMouthWidth(0),
+        };
+        document.querySelectorAll('[data-do]').forEach((button) => button.onclick = () => {
+            each(actions[button.dataset.do]);
+            syncSliders();
+        });
+
+        const toggles = {
+            autoblinker: (eyes, on) => eyes.setAutoblinker(on),
+            idle: (eyes, on) => eyes.setIdleMode(on, 2, 2),
+            curious: (eyes, on) => eyes.setCuriosity(on),
+            cyclops: (eyes, on) => eyes.setCyclops(on),
+            sweat: (eyes, on) => eyes.setSweat(on),
+            smooth: (eyes, on) => { eyes.precision = on ? 'smooth' : 'pixel'; },
+            mouth: (eyes, on) => { eyes.setMouth(on); eyes.setPosition(R.DEFAULT); },
+        };
+        document.querySelectorAll('[data-toggle]').forEach((button) => button.onclick = () => {
+            const on = !button.classList.contains('on');
+            button.classList.toggle('on', on);
+            each((eyes) => toggles[button.dataset.toggle](eyes, on));
+        });
+
+        // The sliders drive the OLED's mouth in its own pixels; the visor follows in proportion.
+        const widthInput = document.getElementById('mouth-width');
+        const cornersInput = document.getElementById('mouth-corners');
+        function syncSliders() {
+            widthInput.value = oled.mouthWidthNext;
+            cornersInput.value = oled.mouthCornersNext;
+            document.getElementById('w-out').textContent = `(${oled.mouthWidthNext})`;
+            document.getElementById('c-out').textContent = `(${oled.mouthCornersNext})`;
+        }
+        widthInput.oninput = () => {
+            const w = Number(widthInput.value);
+            oled.setMouthWidth(w);
+            visor.setMouthWidth(Math.round(w * 0.9));
+            syncSliders();
+        };
+        cornersInput.oninput = () => {
+            const c = Number(cornersInput.value);
+            oled.setMouthCorners(c);
+            visor.setMouthCorners(Math.round(c * 0.85));
+            syncSliders();
+        };
+        syncSliders();
+
+        // For screenshots: ?mood=HAPPY&pos=E sets a state on load.
+        const params = new URLSearchParams(location.search);
+        if (params.get('mood')) each((eyes) => eyes.setMood(R[params.get('mood')]));
+        if (params.get('pos')) each((eyes) => eyes.setPosition(R[params.get('pos')]));
+        if (params.get('blink') === 'off') each((eyes) => eyes.setAutoblinker(R.OFF));
+    </script>
+</body>
+
+</html>
