@@ -111,6 +111,7 @@ export const defaultConfig = {
         happyAsleep: { eyes: 'closed', mouth: 'softSmile', group: 'Sleepy' },
         sleepy: { eyes: 'sleepy', look: 'center', autoblink: false, group: 'Sleepy' },
         confused: { eyes: 'confused', mouth: 'wavy' },
+        surprised: { mouth: 'surprised' },
         sad: { eyes: 'sad', mouth: 'slack', group: 'Upset' },
         worried: { eyes: 'sad', mouth: 'wavy', sweat: true, group: 'Upset' },
         angry: { eyes: 'angry', mouth: 'frown', group: 'Upset/Angry' },
