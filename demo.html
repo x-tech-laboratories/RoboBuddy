@@ -79,8 +79,6 @@
                 <button data-do="blink">Blink</button>
                 <button data-do="wink">Wink</button>
                 <button data-do="anim_laugh">Laugh</button>
-                <button data-do="anim_shakeHead">Shake head</button>
-                <button data-do="anim_nod">Nod</button>
                 <button data-do="close">Close</button>
                 <button data-do="open">Open</button>
             </fieldset>
@@ -298,8 +296,6 @@
             blink: (eyes) => eyes.blink(),
             wink: (eyes) => eyes.blink(false, true),
             anim_laugh: (eyes) => eyes.anim_laugh(),
-            anim_shakeHead: (eyes) => eyes.anim_shakeHead(),
-            anim_nod: (eyes) => eyes.anim_nod(),
             close: (eyes) => eyes.close(),
             open: (eyes) => eyes.open(),
         };
@@ -392,10 +388,10 @@
                 ['laugh.durationMs', 'Duration (ms)', 100, 3000, 50],
                 ['Shake head'],
                 ['shakeHead.amplitude', 'Swing', 0, 40, 1],
-                ['shakeHead.durationMs', 'Duration (ms)', 100, 3000, 50],
+                ['shakeHead.speed', 'Speed', 0.05, 0.8, 0.05],
                 ['Nod'],
                 ['nod.amplitude', 'Swing', 0, 20, 1],
-                ['nod.durationMs', 'Duration (ms)', 100, 3000, 50],
+                ['nod.speed', 'Speed', 0.05, 0.8, 0.05],
                 ['Curious'],
                 ['curious.growth', 'Outer eye growth', 0, 20, 1],
                 ['curious.edge', 'Distance from edge', 0, 40, 1],

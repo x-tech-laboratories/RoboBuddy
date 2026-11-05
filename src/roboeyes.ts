@@ -46,10 +46,10 @@
  *   eyes it sits, and how far each of its two corners bends up or down change. It follows the eyes,
  *   eases like every other value, takes its shape from the mood, and can shrink away completely
  *   (setMouthWidth(0)).
- * - anim_laugh() and anim_shakeHead() (the original's anim_confused(), which is kept as another
- *   name for it) swing the eyes with the same halfway-per-frame easing as a blink, instead of
- *   jumping every frame. While laughing the mouth bounces on its own; a head shake moves it with
- *   the eyes. New: anim_nod(), the same swing down and up, with the mouth moving with the eyes.
+ * - anim_laugh() swings the eyes with the same halfway-per-frame easing as a blink, instead of
+ *   jumping every frame, and the mouth bounces on its own. The original's anim_confused() is gone:
+ *   shaking the head, and its new sibling nodding, are looks (see shakeHead and nod in a look),
+ *   which swing the eyes and mouth together until another look is set.
  * ---------------------------------------------------------------------------------------------
  */
 
@@ -405,19 +405,15 @@ export class RoboEyes {
     dartSide = 1; // the side of the last glance: -1 left, 1 right (so the first glance is to the left)
     dartTimer = 0; // when the next glance is due
 
-    // Animation - shake head (the original's "confused"): eyes and mouth shaking left and right
+    // Animation - shake head (a look, replacing the original's "confused"): eyes and mouth shaking left and right
     shakeHead = false;
-    shakeHeadAnimationTimer = 0;
-    shakeHeadAnimationDuration = defaultConfig.shakeHead.durationMs;
-    shakeHeadToggle = true;
     shakeHeadAmplitude = defaultConfig.shakeHead.amplitude; // port: how far the face swings to each side
+    shakeHeadSpeed = defaultConfig.shakeHead.speed; // how much of the remaining way it goes each frame
 
     // Port: animation - nod head: eyes and mouth swinging down and up
     nod = false;
-    nodAnimationTimer = 0;
-    nodAnimationDuration = defaultConfig.nod.durationMs;
-    nodToggle = true;
     nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
+    nodSpeed = defaultConfig.nod.speed;
 
     // Animation - eyes laughing: eyes shaking up and down
     laugh = false;
@@ -495,8 +491,8 @@ export class RoboEyes {
             wander: { interval: this.idleInterval, variation: this.idleIntervalVariation },
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
-            shakeHead: { amplitude: this.shakeHeadAmplitude, durationMs: this.shakeHeadAnimationDuration },
-            nod: { amplitude: this.nodAmplitude, durationMs: this.nodAnimationDuration },
+            shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
+            nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
             shake: { amplitude: this.hFlickerAmplitude },
             modes: { cyclops: this.cyclops, mouth: this.mouth, smooth: this.precision === 'smooth' },
             look: this.look,
@@ -540,9 +536,9 @@ export class RoboEyes {
         this.laughMouthAmplitude = c.laugh.mouthAmplitude;
         this.laughAnimationDuration = c.laugh.durationMs;
         this.shakeHeadAmplitude = c.shakeHead.amplitude;
-        this.shakeHeadAnimationDuration = c.shakeHead.durationMs;
+        this.shakeHeadSpeed = Math.max(0.05, Math.min(0.8, c.shakeHead.speed));
         this.nodAmplitude = c.nod.amplitude;
-        this.nodAnimationDuration = c.nod.durationMs;
+        this.nodSpeed = Math.max(0.05, Math.min(0.8, c.nod.speed));
         this.hFlickerAmplitude = c.shake.amplitude;
         this.cyclops = c.modes.cyclops;
         this.mouth = c.modes.mouth;
@@ -900,21 +896,6 @@ export class RoboEyes {
     //  MACRO ANIMATION METHODS
     //*********************************************************************************************
 
-    // Play shake head animation - one shot animation of eyes and mouth shaking left and right
-    anim_shakeHead() {
-        this.shakeHead = true;
-    }
-
-    // The original's name for anim_shakeHead()
-    anim_confused() {
-        this.anim_shakeHead();
-    }
-
-    // Port: play nod animation - one shot animation of eyes and mouth swinging down and up
-    anim_nod() {
-        this.nod = true;
-    }
-
     // Play laugh animation - one shot animation of eyes shaking up and down
     anim_laugh() {
         this.laugh = true;
@@ -1002,10 +983,17 @@ export class RoboEyes {
         // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
         // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
         // and the mouth bounces the other way on its own.
-        // Port: a look that shakes the head or nods starts the swing, which then keeps going until the look changes
+        // Port: a look that shakes the head or nods starts the swing, which keeps going until the look changes
         const shaking = !!this.looks[this.look]?.shakeHead, nodding = !!this.looks[this.look]?.nod;
-        if (shaking && !this.shakeHead) this.shakeHead = true;
-        if (nodding && !this.nod) this.nod = true;
+        if (shaking !== this.shakeHead) {
+            this.shakeHead = shaking;
+            this.shakeXNext = shaking ? -this.shakeHeadAmplitude : 0;
+        }
+        if (nodding !== this.nod) {
+            this.nod = nodding;
+            this.shakeYNext = nodding ? this.nodAmplitude : 0;
+            this.mouthShakeYNext = this.shakeYNext;
+        }
 
         if (this.laugh) {
             if (this.laughToggle) {
@@ -1021,46 +1009,19 @@ export class RoboEyes {
             }
         }
 
-        // Shake head - eyes shaking left and right for the duration defined by shakeHeadAnimationDuration (default = 500ms)
-        // Port: instead of the original's per-frame horizontal flicker, the face swings at the pace of a blink,
-        // and the mouth moves with the eyes.
-        if (this.shakeHead) {
-            if (this.shakeHeadToggle) {
-                this.shakeXNext = -this.shakeHeadAmplitude;
-                this.shakeHeadAnimationTimer = millis();
-                this.shakeHeadToggle = false;
-            } else if (millis() >= this.shakeHeadAnimationTimer + this.shakeHeadAnimationDuration && !shaking) {
-                this.shakeXNext = 0;
-                this.shakeHeadToggle = true;
-                this.shakeHead = false;
-            }
-        }
-
-        // Port: nod - the face swings down and up for nodAnimationDuration, the mouth moving with the eyes
-        if (this.nod) {
-            if (this.nodToggle) {
-                this.shakeYNext = this.nodAmplitude;
-                this.mouthShakeYNext = this.nodAmplitude;
-                this.nodAnimationTimer = millis();
-                this.nodToggle = false;
-            } else if (millis() >= this.nodAnimationTimer + this.nodAnimationDuration && !nodding) {
-                this.shakeYNext = 0;
-                this.mouthShakeYNext = 0;
-                this.nodToggle = true;
-                this.nod = false;
-            }
-        }
-
         // Port: each swing eases like a blink, and turns back once it arrives
-        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.blinkSpeed);
-        if (this.shakeHead && this.shakeX === this.shakeXNext) this.shakeXNext = -this.shakeXNext;
-        this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.blinkSpeed);
-        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, this.blinkSpeed);
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.shakeHeadSpeed);
+        // Port: turning back takes the amplitude as it is now, so changing it applies to a swing already going
+        if (this.shakeHead && this.shakeX === this.shakeXNext) this.shakeXNext = this.shakeXNext > 0 ? -this.shakeHeadAmplitude : this.shakeHeadAmplitude;
+        const swingSpeed = this.nod ? this.nodSpeed : this.blinkSpeed; // a laugh swings at the pace of a blink
+        this.shakeY = this.ease(this.shakeY, this.shakeYNext, swingSpeed);
+        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, swingSpeed);
         // The mouth turns back with the eyes, so it moves at the same pace: with them when nodding, and the other
         // way, by its own amount, when laughing
         if ((this.laugh || this.nod) && this.shakeY === this.shakeYNext) {
-            this.shakeYNext = -this.shakeYNext;
-            this.mouthShakeYNext = -this.mouthShakeYNext;
+            const up = this.shakeYNext > 0, amplitude = this.laugh ? this.laughAmplitude : this.nodAmplitude;
+            this.shakeYNext = up ? -amplitude : amplitude;
+            this.mouthShakeYNext = this.laugh ? (up ? this.laughMouthAmplitude : -this.laughMouthAmplitude) : this.shakeYNext;
         }
 
         // Idle - eyes moving to random positions on screen

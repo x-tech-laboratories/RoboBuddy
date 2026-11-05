@@ -21,15 +21,15 @@ eyes.start();                                    // runs update() every animatio
 eyes.setMood(HAPPY);       // eyelids and mouth ease into the new mood
 eyes.setEyes('angry');     // or pick face states yourself: angry eyes with the happy smile
 eyes.setPosition(E);       // look right (the same as setLook('E'))
-eyes.anim_laugh();         // one-shot animations: anim_laugh, anim_shakeHead, anim_nod
+eyes.anim_laugh();         // a one-shot animation; shaking the head and nodding are looks, e.g. setLook('nodCenter')
 ```
 
 No bundler? Load `dist/roboeyes.global.js` with a script tag and use `window.RoboEyesLib`. `demo.html` does this.
 
 Every method and setting of the original is here under the same name (`setWidth`, `setHeight`, `setBorderradius`,
 `setSpacebetween`, `setMood`, `setPosition`, `setAutoblinker`, `setIdleMode`, `setCuriosity`, `setCyclops`,
-`setHFlicker`, `setVFlicker`, `setSweat`, `open`, `close`, `blink`, `anim_confused`, `anim_laugh`).
-`anim_confused()` is also called `anim_shakeHead()` here, and `anim_nod()` is new. The C++
+`setHFlicker`, `setVFlicker`, `setSweat`, `open`, `close`, `blink`, `anim_laugh`).
+`anim_confused()` is gone: shaking the head, and nodding, are looks here. The C++
 overloads become optional arguments, e.g. `blink()` or `blink(false, true)` for a wink.
 
 ## Faces, moods and face states
@@ -104,9 +104,10 @@ Both take any part of the configuration; what is left out keeps its value. The s
 - `mouth`: `gap`, `thickness`, `curl`, `width` (the face's mouth length, 50) and `moodWidth` (off by default, so the
   mouth stays at `width`; on, the mouth state's own `width` is used instead)
 - `blink`: `interval` and `variation` (auto blink timing, in seconds) and `speed`, how much of the remaining way a
-  blinking eye goes each frame (0.5, as the original). The laugh, shake head and nod swings move at the same speed
+  blinking eye goes each frame (0.5, as the original). The laugh swings move at the same speed (shake head and nod have their own)
 - `wander`: `interval` and `variation`, how often a wandering look moves on
-- `curious`, `laugh`, `shakeHead`, `nod` and `shake`: the amounts and timings for those
+- `curious`, `laugh`, `shakeHead`, `nod` and `shake`: the amounts and timings for those (`shakeHead` and `nod` each have
+  an `amplitude` and a `speed`, like `blink.speed`)
 - `modes`: `cyclops`, `mouth` and `smooth`
 - `look`: the look the face has now (the face starts with `wander`)
 - `toggles`: what each toggle is when a mood leaves it out
@@ -162,11 +163,11 @@ still be unique within its kind.
   `SAD`). The sad and angry eye states are the original triangles; happy is a curve close to the original's rounded
   rectangle.
 - `begin()` re-centres the eyes for the new screen size.
-- `anim_laugh()` and `anim_confused()` (also called `anim_shakeHead()`) swing the eyes with the same halfway-per-frame
-  easing as a blink, turning back each time a swing arrives, instead of jumping every frame. A head shake takes the
-  mouth with it. `laughAmplitude` and `shakeHeadAmplitude` set how far. `setVFlicker()` and `setHFlicker()` still
+- `anim_laugh()` swings the eyes with the same halfway-per-frame easing as a blink, turning back each time a swing
+  arrives, instead of jumping every frame. `laughAmplitude` sets how far. Shaking the head (`shakeHeadAmplitude`,
+  `shakeHeadSpeed`) is a look and takes the mouth with it. `setVFlicker()` and `setHFlicker()` still
   shiver every frame, as in the original.
-- New: `anim_nod()` swings the eyes and mouth down and up the same way (`nodAmplitude`).
+- New: a nod look swings the eyes and mouth down and up the same way (`nodAmplitude`, `nodSpeed`).
 - New: the `closed` eye state keeps the eyes closed until another eye state is set. Auto blink and wander wait
   meanwhile.
 - Curious, sweat and shake (the original's horizontal flicker) are toggles, so a mood can turn them on or off.
