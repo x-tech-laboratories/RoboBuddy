@@ -3,6 +3,8 @@
 A TypeScript port of [FluxGarage RoboEyes](https://github.com/FluxGarage/RoboEyes) v1.1.1 by Dennis Hoelscher,
 drawing on a `<canvas>`, plus a mouth. GPL-3.0-or-later, like the original (see `LICENSE`).
 
+**[Live demo](https://x-tech-laboratories.github.io/RoboEyes/demo.html)** · [Docs](https://x-tech-laboratories.github.io/RoboEyes/)
+
 ## Use
 
 ```js
