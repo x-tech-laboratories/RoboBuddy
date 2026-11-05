@@ -17,6 +17,7 @@
     "mouth": {
         "gap": 16,
         "thickness": 3,
+        "radius": 4,
         "curl": 0.25,
         "width": 50,
         "moodWidth": false

@@ -152,6 +152,9 @@ export interface FaceConfig {
         /** Space between the bottom of the eyes and the mouth. */
         gap: number;
         thickness: number;
+        /** How round the corners of an open mouth are, like an eye's radius. Only the corners that open by their own
+         *  amount (leftOpen, rightOpen) have a corner to round. */
+        radius: number;
         /** How much of each end of the line bends at the corners, as a fraction of its length. */
         curl: number;
         /** The face's own mouth length, used whatever the mouth state when moodWidth is off. */

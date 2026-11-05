@@ -80,6 +80,8 @@ Always a single line under the eyes. Only three things change: its length, its h
 - the mouth state sets the corners. The length stays at the face's `mouth.width` (50) unless `mouth.moodWidth` is on;
   then the mouth state's own `width` sets it
 - `mouthThickness`: line weight
+- `mouthRadius`: how round the corners of an open mouth are, like an eye's radius; only a corner with its own
+  `leftOpen` or `rightOpen` has one to round
 
 It moves with the eyes when they look around, shake their head or nod, and eases the same way they do. While
 laughing it bounces on its own instead (`laughMouthAmplitude`).

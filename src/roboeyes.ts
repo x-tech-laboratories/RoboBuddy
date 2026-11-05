@@ -351,6 +351,7 @@ export class RoboEyes {
 
     mouth = defaultConfig.modes.mouth; // draw a mouth under the eyes
     mouthThickness = defaultConfig.mouth.thickness; // line thickness in pixels
+    mouthRadius = defaultConfig.mouth.radius; // how round the corners of an open mouth are
     mouthCurl = defaultConfig.mouth.curl; // how much of each end of the line bends, as a fraction of its length
     mouthWidth = defaultConfig.mouth.width; // the face's own length, used when the mouth state does not set it
     mouthMoodWidth = defaultConfig.mouth.moodWidth; // whether the mouth state sets the length
@@ -487,7 +488,7 @@ export class RoboEyes {
                 closedHeight: this.eyeClosedHeight,
             },
             mouth: {
-                gap: this.mouthGapNext, thickness: this.mouthThickness, curl: this.mouthCurl,
+                gap: this.mouthGapNext, thickness: this.mouthThickness, radius: this.mouthRadius, curl: this.mouthCurl,
                 width: this.mouthWidth, moodWidth: this.mouthMoodWidth,
             },
             blink: { interval: this.blinkInterval, variation: this.blinkIntervalVariation, speed: this.blinkSpeed },
@@ -524,6 +525,7 @@ export class RoboEyes {
         if (this.eyeRheightNext === closed) this.eyeRheightNext = this.eyeClosedHeight;
         this.setMouthGap(c.mouth.gap);
         this.mouthThickness = c.mouth.thickness;
+        this.mouthRadius = c.mouth.radius;
         this.mouthCurl = c.mouth.curl;
         this.mouthWidth = Math.max(0, c.mouth.width);
         this.mouthMoodWidth = c.mouth.moodWidth;
@@ -1293,20 +1295,43 @@ export class RoboEyes {
         // The top edge is the line as before. With any opening, the bottom edge runs back under it, lower by the
         // corner's own opening at each end and by the centre's opening in between; a closed mouth is just the line.
         const open = this.mouthOpenCurrent, openL = this.mouthLeftOpenCurrent, openR = this.mouthRightOpenCurrent;
-        const segments: Array<{ control?: Point; to: Point }> = [
-            { control: [x0 + curl * 0.4, y], to: [x0 + curl, y] },
-            { to: [x1 - curl, y] },
-            { control: [x1 - curl * 0.4, y], to: [x1, y - liftR] },
-        ];
-        if (open > 0.05 || openL > 0.05 || openR > 0.05) {
-            segments.push(
-                { to: [x1, y - liftR + openR] },
-                { control: [x1 - curl * 0.4, y + open], to: [x1 - curl, y + open] },
-                { to: [x0 + curl, y + open] },
-                { control: [x0 + curl * 0.4, y + open], to: [x0, y - liftL + openL] },
-            );
+        const k = 0.4; // where each curl's control point sits along it
+        if (open <= 0.05 && openL <= 0.05 && openR <= 0.05) {
+            this.display.strokeLine({
+                start: [x0, y - liftL],
+                segments: [
+                    { control: [x0 + curl * k, y], to: [x0 + curl, y] },
+                    { to: [x1 - curl, y] },
+                    { control: [x1 - curl * k, y], to: [x1, y - liftR] },
+                ],
+            }, thickness);
+            return;
         }
-        this.display.strokeLine({ start: [x0, y - liftL], segments }, thickness, segments.length > 3);
+        // One end of the mouth, from the inner end of its top curl, round the corner, down its side and back along the
+        // bottom curl. The radius rounds where the side meets each curl: both are cut short, and a bend joins them.
+        const lerp = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+        const quad = (a: Point, c: Point, b: Point, t: number): Point => lerp(lerp(a, c, t), lerp(c, b, t), t);
+        const endOf = (dir: number, lift: number, own: number) => {
+            const xe = dir < 0 ? x0 : x1, xi = xe - dir * curl, xc = xe - dir * curl * k;
+            const r = Math.max(0, Math.min(this.mouthRadius, own / 2));
+            // how far along a curl its cut is, so the bend takes about r of it
+            const cut = (chord: number) => (r > 0.05 && chord > 0 ? Math.min(0.8, r / (chord * 1.1)) : 0);
+            const topIn: Point = [xi, y], topCtl: Point = [xc, y], corner: Point = [xe, y - lift];
+            const botIn: Point = [xi, y + open], botCtl: Point = [xc, y + open], bottom: Point = [xe, y - lift + own];
+            const tu = cut(Math.hypot(curl, lift)), bu = cut(Math.hypot(curl, y + open - bottom[1]));
+            const nodes: Point[] = [
+                topIn, quad(topIn, topCtl, corner, 1 - tu), [xe, corner[1] + r], [xe, bottom[1] - r], quad(bottom, botCtl, botIn, bu), botIn,
+            ];
+            const controls: Array<Point | undefined> = [lerp(topIn, topCtl, 1 - tu), corner, undefined, bottom, lerp(botCtl, botIn, bu)];
+            return { nodes, controls };
+        };
+        const endR = endOf(1, liftR, openR), endL = endOf(-1, liftL, openL);
+        const segments: Array<{ control?: Point; to: Point }> = [{ to: endR.nodes[0] }];
+        endR.controls.forEach((control, i) => segments.push({ control, to: endR.nodes[i + 1] }));
+        segments.push({ to: endL.nodes[5] });
+        // the left end is the same shape mirrored, so it is walked backwards
+        for (let i = 4; i >= 0; i--) segments.push({ control: endL.controls[i], to: endL.nodes[i] });
+        this.display.strokeLine({ start: endL.nodes[0], segments }, thickness, true);
     }
 }
 
