@@ -167,6 +167,7 @@ export declare class RoboEyes {
     mouthWidthCurrent: number;
     mouthWidthNext: number;
     mouthLeftCurrent: number;
+    mouthFollowLook: boolean;
     mouthLeftNext: number;
     mouthRightCurrent: number;
     mouthRightNext: number;

@@ -355,6 +355,7 @@ export class RoboEyes {
     mouthWidthCurrent = 0; // starts closed and grows in with the eyes
     mouthWidthNext = this.mouthWidth;
     mouthLeftCurrent = 0;
+    mouthFollowLook = false; // Port: swap the corners as the eyes look left
     mouthLeftNext = 0;
     mouthRightCurrent = 0;
     mouthRightNext = 0;
@@ -541,6 +542,7 @@ export class RoboEyes {
             this.mouthStates[name] = { left: state.left ?? 0, right: state.right ?? 0 };
             if (state.width !== undefined && state.width !== null) this.mouthStates[name].width = state.width;
             if (state.ownWidth) this.mouthStates[name].ownWidth = true;
+            if (state.followLook) this.mouthStates[name].followLook = true;
             if (state.group) this.mouthStates[name].group = state.group;
         }
         this.looks = {};
@@ -747,6 +749,7 @@ export class RoboEyes {
         this.mouthWidthNext = ownWidth ? shape.width! : this.mouthWidth;
         this.mouthLeftNext = shape.left;
         this.mouthRightNext = shape.right;
+        this.mouthFollowLook = !!shape.followLook;
     }
 
     // Set predefined position. Port: each position is a look (center, N, NE ...), so this is setLook() by another name.
@@ -1259,7 +1262,14 @@ export class RoboEyes {
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * this.mouthCurl; // how much of each end bends
         const clamp = (lift: number) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long
-        const liftL = clamp(this.mouthLeftCurrent), liftR = clamp(this.mouthRightCurrent);
+        let left = this.mouthLeftCurrent, right = this.mouthRightCurrent;
+        if (this.mouthFollowLook) {
+            // 0 looking right or ahead, 1 looking left (fully mirrored a quarter of the way over), easing between
+            const reach = this.getScreenConstraint_X();
+            const mirror = reach > 0 ? Math.max(0, Math.min(1, (0.5 - this.eyeLx / reach) * 4)) : 0;
+            [left, right] = [left + (right - left) * mirror, right + (left - right) * mirror];
+        }
+        const liftL = clamp(left), liftR = clamp(right);
         this.display.strokeLine({
             start: [x0, y - liftL],
             segments: [

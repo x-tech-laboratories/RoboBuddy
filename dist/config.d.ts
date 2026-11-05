@@ -41,6 +41,9 @@ export interface MouthState {
     /** Always use this state's width, even with FaceConfig.mouth.moodWidth off: for a mouth whose length is the
      *  point of it, like surprised. */
     ownWidth?: boolean;
+    /** Mirror the corners when the eyes look left, so a lopsided mouth (smirk) curls up on the side away from where
+     *  they look. Looking right or ahead leaves it as set. */
+    followLook?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
     group?: string;
 }

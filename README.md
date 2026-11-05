@@ -111,7 +111,9 @@ over the shared ones, e.g. `left: { top: { height: 0.4 } }`. Lid sizes are fract
   shallower part
 
 A mouth state is `left` and `right` (how far each corner bends, in pixels) and optionally `width`, which only counts
-when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `surprised`, a dot, does). A look is `x` and
+when `mouth.moodWidth` is on unless the state also has `ownWidth: true` (as `surprised`, a dot, does). With
+`followLook: true` (as `smirk`) the corners swap as the eyes look left, so the smirk curls up on the side away from
+where they look. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
 `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
 (slow for suspicious, quick for shifty).

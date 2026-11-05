@@ -86,7 +86,7 @@ export const defaultConfig = {
         wavy: { left: 3, right: -3, width: 20 },
         smile: { left: 4, right: 4, width: 28, group: 'Smiles' },
         softSmile: { left: 3, right: 3, width: 24, group: 'Smiles' },
-        smirk: { left: 4, right: 0, width: 20, group: 'Smiles' },
+        smirk: { left: 4, right: 0, width: 20, followLook: true, group: 'Smiles' },
         slack: { left: -1, right: -1, width: 12, group: 'Frowns' },
         frown: { left: -3, right: -3, width: 18, group: 'Frowns' },
     },
