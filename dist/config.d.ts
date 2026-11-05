@@ -36,7 +36,7 @@ export interface MouthState {
     /** The mouth's length in this state. Only used when FaceConfig.mouth.moodWidth is on, or ownWidth is. */
     width?: number;
     /** Always use this state's width, even with FaceConfig.mouth.moodWidth off: for a mouth whose length is the
-     *  point of it, like surprised. */
+     *  point of it, like closedGasp. */
     ownWidth?: boolean;
     /** Prototype: how far the middle of the mouth opens downwards, making its line a rectangle that many pixels taller. */
     open?: number;

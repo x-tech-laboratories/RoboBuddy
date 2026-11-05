@@ -264,18 +264,14 @@ const defaultConfigJson = {
             "right": 0,
             "width": 16
         },
-        "surprised": {
+        "closedGasp": {
             "left": 0,
             "right": 0,
             "width": 3,
-            "ownWidth": true
+            "ownWidth": true,
+            "group": "Surprised"
         },
-        "wavy": {
-            "left": 3,
-            "right": -3,
-            "width": 20
-        },
-        "gasp": {
+        "openGasp": {
             "left": 0,
             "right": 0,
             "width": 14,
@@ -283,7 +279,12 @@ const defaultConfigJson = {
             "open": 10,
             "leftOpen": 10,
             "rightOpen": 10,
-            "group": "Open"
+            "group": "Surprised"
+        },
+        "wavy": {
+            "left": 3,
+            "right": -3,
+            "width": 20
         },
         "softSmile": {
             "left": 3,
@@ -472,7 +473,7 @@ const defaultConfigJson = {
         },
         "asleep": {
             "eyes": "sleepy",
-            "mouth": "surprised",
+            "mouth": "closedGasp",
             "look": "center",
             "autoblink": false,
             "group": "Sleepy"
@@ -488,7 +489,7 @@ const defaultConfigJson = {
             "mouth": "wavy"
         },
         "surprised": {
-            "mouth": "gasp"
+            "mouth": "openGasp"
         },
         "sad": {
             "eyes": "sad",
@@ -502,7 +503,7 @@ const defaultConfigJson = {
         },
         "scared": {
             "eyes": "sad",
-            "mouth": "gasp",
+            "mouth": "openGasp",
             "look": "dart",
             "sweat": true,
             "shake": true,
@@ -603,7 +604,7 @@ const TIRED = SAD; // the original's name for SAD
 const ANGRY = 2;
 const HAPPY = 3;
 const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
-const ASLEEP = 5; // port: sleepy eyes looking ahead, the surprised mouth's dot, no blinking (not in the original)
+const ASLEEP = 5; // port: sleepy eyes looking ahead, the closed gasp mouth's dot, no blinking (not in the original)
 const HAPPY_ASLEEP = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
 const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
 const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
