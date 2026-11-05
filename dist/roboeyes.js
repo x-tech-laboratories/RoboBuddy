@@ -7,7 +7,7 @@
  * www.youtube.com/@FluxGarage
  * https://github.com/FluxGarage/RoboEyes
  *
- * Port and mouth: Copyright (C) 2026 the CODEX mascot authors
+ * Port and mouth: Copyright (C) 2026 X Tech Laboratories
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
