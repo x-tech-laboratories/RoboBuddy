@@ -167,7 +167,7 @@ eyes.configure({ moods: {
 
 `null` in a mood removes that choice, as if the mood had left it out.
 
-Moods and face states can be filed in folders with `group`, a path such as `'Upset/Angry'`. Folders only organise
+Moods and face states can be filed in folders with `group`, a path such as `'Anger/Furious'`. Folders only organise
 them (the demo shows them as collapsible lists); they change nothing about how a face behaves, and every name must
 still be unique within its kind.
 
