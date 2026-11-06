@@ -63,8 +63,8 @@ export const TIRED = SAD; // the original's name for SAD
 export const ANGRY = 2;
 export const HAPPY = 3;
 export const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
-export const ASLEEP = 5; // port: sleepy eyes looking ahead, the closed gasp mouth's dot, no blinking (not in the original)
-export const HAPPY_ASLEEP = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
+export const ASLEEP = 5; // port: closed eyes looking ahead, the closed gasp mouth's dot, no blinking (not in the original)
+export const PEACEFUL = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
 export const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
 export const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
@@ -80,11 +80,11 @@ export const SW = 6; // south-west, bottom left
 export const W = 7; // west, middle left
 export const NW = 8; // north-west, top left
 // Port: the mood constants name these entries of FaceConfig.moods
-const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'happyAsleep', 'worried', 'furious'];
+const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'peaceful', 'worried', 'furious'];
 // Port: the position constants name these entries of FaceConfig.looks
 const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
-const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh' };
+const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh', cry: 'cry' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
 export class CanvasDisplay {
     constructor(canvas, options = {}) {
@@ -404,6 +404,22 @@ export class RoboEyes {
         this.shakeYNext = 0;
         this.mouthShakeY = 0;
         this.mouthShakeYNext = 0;
+        // Port: the cry toggle - teardrops run down from the outer corner of each eye
+        this.cry = defaultConfig.toggles.cry;
+        this.cryDrops = defaultConfig.cry.drops; // drops running at once from each eye
+        this.crySpeed = defaultConfig.cry.speed; // how far a drop falls each frame, in pixels
+        this.cryFall = defaultConfig.cry.fall; // how far a drop runs before it is gone, in pixels
+        this.crySize = defaultConfig.cry.size; // a drop's width, in pixels
+        this.cryRise = defaultConfig.cry.rise; // how far up inside the eye a drop starts, so it runs from the corner, in pixels
+        this.cryFrequency = defaultConfig.cry.frequency; // sobs (bounces) per second
+        this.cryAmplitude = defaultConfig.cry.amplitude; // how far the eyes lift each sob, in pixels
+        this.cryMouthAmplitude = defaultConfig.cry.mouthAmplitude; // how far the mouth lifts each sob, in pixels
+        this.cryLevel = 0; // 0 to 1: how far into the sobbing the face is, easing in and out as the toggle changes
+        this.cryPhase = 0; // where the sob is, in radians
+        this.cryLast = 0; // when the sobbing was last stepped, in milliseconds
+        this.cryY = 0; // the sob now, added to the eyes
+        this.cryMouthY = 0; // and to the mouth
+        this.tears = [[], []]; // each eye's drops: how far they have fallen and how far they wander from the corner
         // Animation - sweat on the forehead
         this.sweat = false;
         this.sweatBorderradius = 3;
@@ -456,6 +472,7 @@ export class RoboEyes {
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             follow: { fullX: this.followFullX, fullY: this.followFullY },
             laugh: { frequency: this.laughFrequency, amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, squint: this.laughSquint, mouthOpen: this.laughMouthOpen },
+            cry: { drops: this.cryDrops, speed: this.crySpeed, fall: this.cryFall, size: this.crySize, rise: this.cryRise, frequency: this.cryFrequency, amplitude: this.cryAmplitude, mouthAmplitude: this.cryMouthAmplitude },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
             talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway, visemes: structuredClone(this.visemes) },
             nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
@@ -511,6 +528,14 @@ export class RoboEyes {
         this.laughFrequency = c.laugh.frequency;
         this.laughSquint = c.laugh.squint;
         this.laughMouthOpen = c.laugh.mouthOpen;
+        this.cryDrops = Math.max(0, Math.min(2, Math.round(c.cry.drops))); // two lanes at most
+        this.crySpeed = Math.max(0.1, c.cry.speed);
+        this.cryFall = Math.max(1, c.cry.fall);
+        this.crySize = Math.max(1, c.cry.size);
+        this.cryRise = Math.max(0, c.cry.rise);
+        this.cryFrequency = c.cry.frequency;
+        this.cryAmplitude = c.cry.amplitude;
+        this.cryMouthAmplitude = c.cry.mouthAmplitude;
         this.shakeHeadAmplitude = c.shakeHead.amplitude;
         this.shakeHeadSpeed = Math.max(0.05, Math.min(0.8, c.shakeHead.speed));
         this.talkSyllableMs = Math.max(20, c.talk.syllableMs);
@@ -823,6 +848,10 @@ export class RoboEyes {
     setSweat(sweatBit) {
         this.sweat = sweatBit; // turn sweat on or off
     }
+    // Port: the cry toggle - teardrops run down from under the eyes. The next mood sets it again.
+    setCry(cryBit) {
+        this.cry = cryBit;
+    }
     // Port: mouth on or off. Off keeps the original's layout exactly; on reserves a strip under the eyes.
     setMouth(mouthBit) {
         this.mouth = mouthBit;
@@ -1102,6 +1131,15 @@ export class RoboEyes {
         const lift = still ? 0 : 0.5 - 0.5 * Math.cos(this.laughPhase); // 0 to 1: 0 at rest, 1 at the top of a bounce
         this.laughY = this.int(-lift * this.laughAmplitude * this.laughLevel);
         this.laughMouthY = this.int(-lift * this.laughMouthAmplitude * this.laughLevel);
+        // Port: crying sobs the same way, a gentler bounce of the eyes and mouth
+        this.cryLevel = Math.max(0, Math.min(1, this.cryLevel + (this.cry ? dt / 150 : -dt / 300)));
+        if (this.cryLevel === 0)
+            this.cryPhase = 0;
+        else if (!still)
+            this.cryPhase += 2 * Math.PI * this.cryFrequency * dt / 1000;
+        const sob = still ? 0 : 0.5 - 0.5 * Math.cos(this.cryPhase);
+        this.cryY = this.int(-sob * this.cryAmplitude * this.cryLevel);
+        this.cryMouthY = this.int(-sob * this.cryMouthAmplitude * this.cryLevel);
         this.laughOpenAmount = this.laughLevel * (0.35 + 0.65 * (still ? 1 : lift)); // never quite shut, so it reads as laughing
         // Port: each swing eases like a blink, and turns back once it arrives
         this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.shakeHeadSpeed);
@@ -1186,8 +1224,8 @@ export class RoboEyes {
         // Port: and the mood's scale grows each eye from its centre
         const s = this.eyeScale;
         const grown = (x, y, w, h) => [int(x - w * (s - 1) / 2), int(y - h * (s - 1) / 2), int(w * s), int(h * s)];
-        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + this.laughY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
-        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + this.laughY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
+        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + this.laughY + this.cryY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
+        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + this.laughY + this.cryY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
         const leftCuts = [];
         const rightCuts = [];
         if (!this.cyclops) {
@@ -1272,6 +1310,32 @@ export class RoboEyes {
             } // ... and shrinks in second half of animation
             this.sweat3XPos = int(this.sweat3XPosInitial - (this.sweat3Width / 2)); // keep the growing shape centered to initial x position
             d.fillRoundRect(this.sweat3XPos, this.sweat3YPos, this.sweat3Width, this.sweat3Height, this.sweatBorderradius); // draw sweat drop
+        }
+        // Port: tears run down from the outer corner of each eye, staggered so they trickle one after another
+        if (this.cry && !still && !this.eyesClosed) {
+            // [left edge, width, bottom, outer side]: each eye's outer corner faces its own side of the screen
+            const corners = this.cyclops
+                ? [[lx, lw, ly + lh, -1], [lx, lw, ly + lh, 1]]
+                : [[lx, lw, ly + lh, -1], [rx, rw, ry + rh, 1]];
+            corners.forEach(([x, w, bottom, side], i) => {
+                const drops = this.tears[i];
+                while (drops.length < this.cryDrops)
+                    drops.push({ y: -this.cryFall * drops.length / this.cryDrops, dx: Math.random() });
+                drops.length = this.cryDrops;
+                for (const drop of drops) {
+                    drop.y += this.crySpeed;
+                    if (drop.y > this.cryFall) {
+                        drop.y = 0;
+                        drop.dx = Math.random();
+                    }
+                    if (drop.y < 0)
+                        continue;
+                    const grow = Math.min(1, drop.y / 3), shrink = 1 - drop.y / this.cryFall; // swells as it leaves the eye, thins as it runs out
+                    const size = Math.max(1, Math.round(this.crySize * (0.5 + 0.5 * shrink)));
+                    const edge = side < 0 ? x : x + w - size; // flush with the corner, with a pixel of play so the drops don't line up
+                    d.fillRoundRect(int(edge - side * drop.dx), int(bottom - this.cryRise + drop.y), size, Math.max(size, Math.round(size * (1 + grow))), int(size / 2));
+                }
+            });
         }
         d.display(); // show drawings on display
     } // end of drawEyes method
@@ -1373,7 +1437,7 @@ export class RoboEyes {
         const cx = (leftEdge + rightEdge) / 2 + this.shakeX;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
         const tallest = Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault); // the eyes' shared bottom edge
-        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY + this.laughMouthY;
+        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY + this.laughMouthY + this.cryMouthY;
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * this.mouthCurl; // how much of each end bends
         const clamp = (lift) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long

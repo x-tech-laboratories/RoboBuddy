@@ -83,6 +83,8 @@ export interface Toggles {
     talk: boolean;
     /** The face bounces with each "ha": the eyes lift and squint, and the mouth opens and bounces with them (at the laugh settings). */
     laugh: boolean;
+    /** Teardrops run down from the bottom of each eye (at the cry settings). */
+    cry: boolean;
 }
 /** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
 export interface Viseme {
@@ -196,6 +198,19 @@ export interface FaceConfig {
         mouthAmplitude: number;
         squint: number;
         mouthOpen: number;
+    };
+    /** The cry toggle: drops is how many tears run at once from each eye's outer corner (1 or 2), speed how far each falls a frame, fall how far
+     *  it runs before it is gone and size how wide it is (pixels) and rise how far up inside the eye it starts, so it runs from the corner. The face sobs as it
+     *  cries: frequency is how many sobs a second, amplitude and mouthAmplitude how far the eyes and the mouth lift each one (pixels). */
+    cry: {
+        drops: number;
+        speed: number;
+        fall: number;
+        size: number;
+        rise: number;
+        frequency: number;
+        amplitude: number;
+        mouthAmplitude: number;
     };
     shakeHead: {
         amplitude: number;
