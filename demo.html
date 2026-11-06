@@ -27,6 +27,9 @@
         .label.left { text-align: left; }
         /* Folders: moods and face states filed with group: 'Anger/Furious' */
         details { margin: 2px 0 2px 14px; }
+        /* A mood in the picker: its face, drawn small, over its name */
+        button.card { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; width: 120px; padding: 4px; vertical-align: top; font-size: 12px; }
+        button.card img { width: 100%; aspect-ratio: 112 / 80; background: #000; border-radius: 6px; image-rendering: pixelated; }
         summary { cursor: pointer; color: #8b93a1; font-size: 12px; margin: 2px 0; }
         .controls { flex: 1; min-width: 0; }
         .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
@@ -173,6 +176,11 @@
                 <div data-picker="eyes"></div>
             </fieldset>
             <fieldset>
+                <legend>Spacing</legend>
+                <div class="sliders" id="eye-spacing-sliders"></div>
+                <div class="label left">The same setting as "Space between" on the Face tab, here so you can nudge it while you edit the lids.</div>
+            </fieldset>
+            <fieldset>
                 <legend>Eye state: <span id="eye-name"></span></legend>
                 <div>
                     Lids for
@@ -259,6 +267,10 @@
             <fieldset>
                 <legend>Moves and timings</legend>
                 <div class="sliders" id="timing-sliders"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Changing mood</legend>
+                <div class="sliders" id="transition-sliders"></div>
             </fieldset>
             <fieldset>
                 <legend>Screen</legend>
@@ -569,6 +581,10 @@
                 ['@look.nod', 'Nod', 'check'],
                 ['@look.x', 'Across (0 left, 1 right)', 0, 1, 0.05],
                 ['@look.y', 'Down (0 top, 1 bottom)', 0, 1, 0.05],
+                ['@look.shakeHead.amplitude', 'This look\'s head shake swing', 0, 40, 1],
+                ['@look.shakeHead.speed', 'This look\'s head shake speed', 0.05, 0.8, 0.05],
+                ['@look.nod.amplitude', 'This look\'s nod swing', 0, 20, 1],
+                ['@look.nod.speed', 'This look\'s nod speed', 0.05, 0.8, 0.05],
             ],
             'look-behaviour-sliders': [
                 ['Wander'],
@@ -621,6 +637,14 @@
                 ['talk.cornerSway', 'Corner sway (px)', 0, 5, 0.5],
                 ['Shake'],
                 ['shake.amplitude', 'Jitter (px)', 0, 20, 1],
+            ],
+            'eye-spacing-sliders': [
+                ['eyes.spacing', 'Space between', -20, 60, 1],
+            ],
+            'transition-sliders': [
+                ['transition.durationMs', 'How long a new mood eases in (ms, 0 for none)', 0, 2000, 50],
+                ['transition.speed', 'Easing speed (a share of the way each frame)', 0.05, 0.5, 0.05],
+                ['transition.blink', 'Blink as the mood changes', 'check'],
             ],
             'screen-sliders': [
                 ['frameRate', 'Frame rate', 5, 60, 1],
@@ -694,10 +718,55 @@
         const fill = (selector, nodes) => document.querySelectorAll(selector).forEach((box) => box.replaceChildren(...nodes(box)));
         // Only the Play tab's moods are tried out for a while; on the Moods tab, picking one is how you edit it
         const pickMood = (box, name) => face.setMood(name, box.closest('#play') && $('mood-temp').checked ? { for: Number($('mood-temp-s').value) * 1000 } : {});
+
+        //// Mood previews ////
+
+        // Each mood is drawn once, on a face of its own that is never started, and kept as an image for the picker. They are
+        // drawn again (a mood at a time, so the page stays responsive) a moment after the face's settings change.
+        const thumbs = new Map();
+        let thumbRun = 0, thumbTimer, thumbSignature = '';
+        async function drawThumbs() {
+            const run = ++thumbRun;
+            // The face as it is built now, with nothing that moves by itself and no slow easing
+            const config = R.mergeConfig(face.getConfig(), { transition: { durationMs: 0 }, toggles: { autoblink: false } });
+            const screen = document.createElement('canvas');
+            for (const name of Object.keys(config.moods)) {
+                const preview = new R.RoboEyes(screen, { config });
+                preview.setDisplayColors('#000', '#fff');
+                preview.begin(112, 80, 50);
+                preview.setMood(name);
+                preview.setAutoblinker(false);
+                // A look that keeps moving is shown at rest, in the middle
+                const look = preview.looks[preview.look];
+                if (look?.wander || look?.follow || look?.shakeHead || look?.nod || look?.path) preview.setLook('center');
+                for (let frame = 0; frame < 20; frame++) preview.drawEyes(); // long enough for the eyes and mouth to settle
+                if (run !== thumbRun) return; // the settings changed again; start over
+                thumbs.set(name, screen.toDataURL());
+                document.querySelectorAll('img[data-mood]').forEach((img) => { if (img.dataset.mood === name) img.src = thumbs.get(name); });
+                await new Promise((resolve) => setTimeout(resolve));
+            }
+        }
+        const moodCard = (name, on, onclick) => {
+            const card = button('', on, onclick);
+            card.classList.add('card');
+            const img = document.createElement('img');
+            img.alt = '';
+            img.dataset.mood = name;
+            if (thumbs.has(name)) img.src = thumbs.get(name);
+            card.append(img, title(name));
+            return card;
+        };
         function render() {
             const config = face.getConfig();
+            // Which mood is in use, and the look, don't change how a mood looks; everything else might
+            const signature = JSON.stringify({ ...config, look: 0 });
+            if (signature !== thumbSignature) {
+                thumbSignature = signature;
+                clearTimeout(thumbTimer);
+                thumbTimer = setTimeout(drawThumbs, thumbs.size ? 400 : 0);
+            }
             fill('[data-picker=moods]', (box) => foldered('moods', Object.keys(face.moods), (name) => face.moods[name].group,
-                (name) => button(title(name), name === face.mood, () => pickMood(box, name))));
+                (name) => moodCard(name, name === face.mood, () => pickMood(box, name))));
             fill('[data-picker=eyes]', () => foldered('eyes', Object.keys(face.eyeStates), (name) => face.eyeStates[name].group,
                 (name) => button(title(name), name === face.eyeState, () => face.setEyes(name))));
             fill('[data-picker=mouths]', () => foldered('mouths', Object.keys(face.mouthStates), (name) => face.mouthStates[name].group,
@@ -737,7 +806,9 @@
                 else if (input.tagName === 'SELECT') input.value = JSON.stringify(value ?? false);
                 // What a slider shows when the setting is left out: the mood's eyes at their own size and the face's blink;
                 // a mouth state without a length shows the face's
-                else input.value = value ?? { '@mood.scale': base.scale ?? 1, '@mood.blink.interval': base.blink?.interval ?? config.blink.interval, '@mood.blink.variation': base.blink?.variation ?? config.blink.variation }[path] ?? config.mouth.width;
+                else input.value = value ?? { '@mood.scale': base.scale ?? 1, '@mood.blink.interval': base.blink?.interval ?? config.blink.interval, '@mood.blink.variation': base.blink?.variation ?? config.blink.variation,
+                    '@look.shakeHead.amplitude': config.shakeHead.amplitude, '@look.shakeHead.speed': config.shakeHead.speed,
+                    '@look.nod.amplitude': config.nod.amplitude, '@look.nod.speed': config.nod.speed }[path] ?? config.mouth.width;
                 out.textContent = value === undefined ? '' : `(${value})`;
             }
             // Sliders that would do nothing right now
@@ -746,6 +817,11 @@
             const wandering = !!face.looks[face.look]?.wander, following = !!face.looks[face.look]?.follow;
             disable('@look.x', wandering || following);
             disable('@look.y', wandering || following);
+            // A look's own swing only counts while it shakes the head or nods; setting one would also turn it on
+            for (const key of ['amplitude', 'speed']) {
+                disable(`@look.shakeHead.${key}`, !face.looks[face.look]?.shakeHead);
+                disable(`@look.nod.${key}`, !face.looks[face.look]?.nod);
+            }
 
             document.querySelectorAll('[data-toggle]').forEach((b) => b.classList.toggle('on', face[toggleFields[b.dataset.toggle]]));
             document.querySelectorAll('[data-default]').forEach((b) => b.classList.toggle('on', face.toggleDefaults[b.dataset.default]));

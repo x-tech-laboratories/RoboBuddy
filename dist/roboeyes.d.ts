@@ -100,6 +100,10 @@ export declare class RoboEyes {
     mood: string;
     baseMood: string;
     tempMoodEnd: number;
+    transitionMs: number;
+    transitionSpeed: number;
+    transitionBlink: boolean;
+    transitionEnd: number;
     eyeState: string;
     mouthState: string;
     look: string;
@@ -205,6 +209,9 @@ export declare class RoboEyes {
     followFullY: number;
     followX: number;
     followY: number;
+    pathing: boolean;
+    pathIndex: number;
+    pathTimer: number;
     shakeHead: boolean;
     shakeHeadAmplitude: number;
     shakeHeadSpeed: number;

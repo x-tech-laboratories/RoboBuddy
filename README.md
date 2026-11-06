@@ -46,7 +46,8 @@ A face is built in layers:
    - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `closedGasp`,
      `wry`, or the open mouths `open` (a neutral one), `openSmile`, `wideSmile`, `laugh`, `openFrown` and `openGasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
-     mode, which the face starts with), `lookAround` (a quick wander, for suspicious or shifty), `shakeHeadUp`, `shakeHeadCenter` or
+     mode, which the face starts with), `lookAround` (a quick wander, for suspicious or shifty), `glanceUp` (glancing
+     up to one side, then the other, then up, for thinking), `scan` (slowly side to side, for focused), `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
      look is set), `nodLeft`, `nodCenter` or `nodRight` (looking left, ahead or right while nodding, at the `nod`
      settings, until another look is set), or `follow` (following the point `lookAt(x, y)` gives).
@@ -62,6 +63,9 @@ A face is built in layers:
    `setMood(name, { for: ms })` makes a mood temporary: after that long the face goes back to the last mood set
    without `for` (a reaction during a reaction goes back to the same one), so `surprised` for 1.5 s returns to
    whatever was underneath. Face settings, modes and one-off actions (blink, wink, speech) are never touched by it.
+   A change of mood eases in: for `transition.durationMs` (500 by default) after it, the mouth, eyelids and eye size
+   move `transition.speed` (0.2) of the remaining way each frame instead of half, and `transition.blink` makes the
+   eyes blink as the mood changes. Set `durationMs` to 0 for the original's snap; reduced motion skips it.
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth, smooth motion
    and reduced motion), which no mood changes.
 
@@ -151,6 +155,11 @@ text-to-speech engine's viseme events), or hold one shape with `setViseme('oo')`
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead (`wander: { interval, variation }` sets its own pace in seconds, as `lookAround` does);
 `follow: true` makes it follow the point `lookAt(x, y)` gives (fractions, like `x` and `y`; the demo points it at
 the mouse); `shakeHead: true` keeps the head shaking, and `nod: true` keeps it nodding, while the eyes look there.
+`shakeHead: { amplitude, speed }` and `nod: { amplitude, speed }` give that look its own swing instead of the
+`shakeHead` and `nod` settings', e.g. a small quick nod for excited. `path: [{ x, y, holdMs }, ...]` takes the eyes to
+each point in turn, holding each for `holdMs`, and starts again after the last (as `glanceUp` and `scan` do); it waits
+while the eyes are closed, and with reduced motion the eyes rest at the look's own `x` and `y`. The demo edits a path
+in the configuration JSON only.
 
 A mood names its face states, sets toggles, and can change its eye and mouth states for itself only with `override`.
 It can also set how big the eyes are, with `scale` (a multiple of their size, so `1.12` is 12% bigger; each eye grows
@@ -173,7 +182,8 @@ still be unique within its kind.
 
 `demo.html` is a face builder: a control for every setting, in tabs (Play, Moods, Face, Eyes, Mouth, Looks, Behaviour), and an
 Import / Export tab that saves a face as a JSON file (all of it, or only what differs from the starting face), loads one
-back (by file, drop or paste) and saves the face as an image. Your work is kept in the browser between visits.
+back (by file, drop or paste) and saves the face as an image. The mood pickers show each mood's face, redrawn when you
+change a setting. Your work is kept in the browser between visits.
 
 ## Differences from the Arduino version
 

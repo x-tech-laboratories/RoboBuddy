@@ -98,10 +98,15 @@ export interface LookState {
      *  where the eyes rest until lookAt() is first called. */
     follow?: boolean;
     /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. An object
-     *  gives this look its own speed, instead of the shakeHead setting's. */
-    shakeHead?: boolean | { speed?: number };
-    /** Keep nodding while looking here (at the nod settings), until another look is set. */
-    nod?: boolean;
+     *  gives this look its own amplitude or speed, instead of the shakeHead setting's. */
+    shakeHead?: boolean | { amplitude?: number; speed?: number };
+    /** Keep nodding while looking here (at the nod settings), until another look is set. An object gives this look its
+     *  own amplitude or speed: small and quick bounces with excitement, slow and tiny ones bob. */
+    nod?: boolean | { amplitude?: number; speed?: number };
+    /** Instead of holding still, go to each point in turn, holding it for holdMs, and start again after the last: a
+     *  glance up from side to side for thinking, a slow scan for focused. x and y are where the eyes rest with reduced
+     *  motion. */
+    path?: Array<{ x: number; y: number; holdMs: number }>;
     /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
 }
@@ -199,6 +204,11 @@ export interface FaceConfig {
     };
     /** speed: how much of the remaining way a blinking eye goes each frame (0.5, as the original). Shake head and nod have their own. */
     blink: { interval: number; variation: number; speed: number };
+    /** How a change of mood eases in. For durationMs after setMood() changes the mood, the mouth, eyelids and eye size
+     *  go speed (0 to 1) of the remaining way each frame instead of half of it, so the face settles into the new mood
+     *  instead of snapping. blink: the eyes also blink as the mood changes, which hides the change. durationMs 0 turns it
+     *  off. Reduced motion skips it. */
+    transition: { durationMs: number; speed: number; blink: boolean };
     /** How often a wandering look moves on. */
     wander: { interval: number; variation: number };
     /** Curious: an eye this close to the screen edge grows by this much. */

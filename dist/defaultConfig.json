@@ -28,6 +28,11 @@
         "variation": 4,
         "speed": 0.5
     },
+    "transition": {
+        "durationMs": 500,
+        "speed": 0.2,
+        "blink": false
+    },
     "wander": {
         "interval": 1,
         "variation": 3
@@ -454,6 +459,25 @@
             },
             "group": "Moving"
         },
+        "glanceUp": {
+            "x": 0.5,
+            "y": 0.2,
+            "path": [
+                { "x": 0.3, "y": 0.2, "holdMs": 1500 },
+                { "x": 0.7, "y": 0.15, "holdMs": 1500 },
+                { "x": 0.5, "y": 0.1, "holdMs": 1000 }
+            ],
+            "group": "Moving"
+        },
+        "scan": {
+            "x": 0.5,
+            "y": 0.5,
+            "path": [
+                { "x": 0.35, "y": 0.5, "holdMs": 1700 },
+                { "x": 0.65, "y": 0.5, "holdMs": 1700 }
+            ],
+            "group": "Moving"
+        },
         "shakeHeadUp": {
             "x": 0.5,
             "y": 0,
@@ -549,11 +573,24 @@
             },
             "group": "Happy"
         },
+        "winkingLeft": {
+            "eyes": "winkLeft",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
+        "winkingRight": {
+            "eyes": "winkRight",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
         "yes": {
             "look": "nodCenter"
         },
         "no": {
             "look": "shakeHeadCenter"
+        },
+        "talking": {
+            "talk": true
         },
         "bored": {
             "mouth": "flat",
@@ -599,6 +636,14 @@
         "peaceful": {
             "eyes": "sleepy",
             "look": "center",
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "yawning": {
+            "eyes": "sleepy",
+            "mouth": "open",
+            "look": "center",
+            "sigh": true,
             "autoblink": false,
             "group": "Sleepy"
         },
@@ -662,6 +707,13 @@
             "mouth": "slack",
             "group": "Sad"
         },
+        "sighing": {
+            "eyes": "sad",
+            "mouth": "flat",
+            "look": "S",
+            "sigh": true,
+            "group": "Sad"
+        },
         "worried": {
             "eyes": "sad",
             "mouth": "wry",
@@ -673,6 +725,18 @@
             "look": "lookAround",
             "sweat": true,
             "shake": true,
+            "group": "Fear"
+        },
+        "peekingLeft": {
+            "eyes": "peekLeft",
+            "mouth": "wry",
+            "look": "W",
+            "group": "Fear"
+        },
+        "peekingRight": {
+            "eyes": "peekRight",
+            "mouth": "wry",
+            "look": "E",
             "group": "Fear"
         },
         "worriedYes": {
