@@ -120,7 +120,9 @@ exists for when there is no text to say.
 ## Configuration
 
 - **One object, `FaceConfig`, is the whole face.** It is plain JSON, kept in `defaultConfig.json` and imported by the
-  library, so a face can be exported, edited and re-imported (the demo's builder does this).
+  library, so a face can be exported, edited and re-imported (the demo's builder does this). The build also writes it as
+  `dist/defaultConfig.js`, which `dist/config.js` imports, so a page whose security policy blocks fetching JSON
+  (`connect-src 'none'`) can still load the library.
 - **Patches, not replacements.** `configure()` and the constructor take any part of the config; what is left out keeps
   its value. Adding a key to `moods`, `eyeStates`, `mouthStates` or `looks` adds one. `null` removes a choice.
 - **Copies in, copies out.** `getConfig()` returns plain JSON, and merging deep-copies, so callers cannot mutate a face by

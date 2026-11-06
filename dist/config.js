@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
+import defaultConfigJson from './defaultConfig.js';
 /** The face's settings and states as they come, kept in defaultConfig.json. */
 export const defaultConfig = defaultConfigJson;
 /** A deep copy of config with patch laid over it. */

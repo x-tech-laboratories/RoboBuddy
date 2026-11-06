@@ -1,0 +1,860 @@
+export default {
+    "frameRate": 50,
+    "eyes": {
+        "left": {
+            "width": 36,
+            "height": 36,
+            "radius": 8
+        },
+        "right": {
+            "width": 36,
+            "height": 36,
+            "radius": 8
+        },
+        "spacing": 10,
+        "closedHeight": 3,
+        "offsetY": 0
+    },
+    "mouth": {
+        "gap": 16,
+        "thickness": 3,
+        "radius": 4,
+        "curl": 0.25,
+        "width": 50,
+        "moodWidth": false
+    },
+    "blink": {
+        "interval": 1,
+        "variation": 4,
+        "speed": 0.5
+    },
+    "transition": {
+        "durationMs": 500,
+        "speed": 0.2,
+        "blink": false
+    },
+    "wander": {
+        "interval": 1,
+        "variation": 3
+    },
+    "curious": {
+        "growth": 8,
+        "edge": 10
+    },
+    "follow": {
+        "fullX": 0.6,
+        "fullY": 0.4
+    },
+    "laugh": {
+        "frequency": 6,
+        "amplitude": 3,
+        "mouthAmplitude": 2,
+        "squint": 0.35,
+        "mouthOpen": 8
+    },
+    "cry": {
+        "drops": 2,
+        "speed": 0.5,
+        "fall": 18,
+        "size": 3,
+        "rise": 5,
+        "frequency": 3,
+        "amplitude": 2,
+        "mouthAmplitude": 1
+    },
+    "sigh": {
+        "frequency": 0.25,
+        "amplitude": 3,
+        "mouthAmplitude": 2,
+        "mouthOpen": 5,
+        "mouthNarrow": 0.3
+    },
+    "shakeHead": {
+        "amplitude": 20,
+        "speed": 0.5
+    },
+    "nod": {
+        "amplitude": 6,
+        "speed": 0.5
+    },
+    "talk": {
+        "syllableMs": 110,
+        "variationMs": 90,
+        "pauseChance": 0.2,
+        "open": 8,
+        "lipLift": 2,
+        "cornerSway": 1.5,
+        "visemes": {
+            "rest": { "open": 0, "corner": 1, "width": 1, "lift": 0, "lip": 0 },
+            "mbp": { "open": 0, "corner": 1, "width": 0.95, "lift": 0, "lip": 0 },
+            "ah": { "open": 1, "corner": 1, "width": 1, "lift": 0, "lip": 1 },
+            "eh": { "open": 0.6, "corner": 1, "width": 1.05, "lift": 0.5, "lip": 0.7 },
+            "ee": { "open": 0.25, "corner": 0.5, "width": 1.15, "lift": 1.5, "lip": 0.3 },
+            "o": { "open": 0.7, "corner": 0.4, "width": 0.7, "lift": 0, "lip": 0.6 },
+            "oo": { "open": 0.35, "corner": 0.3, "width": 0.55, "lift": 0, "lip": 0.2 },
+            "fv": { "open": 0.2, "corner": 0.6, "width": 1, "lift": 0, "lip": 1 },
+            "ch": { "open": 0.3, "corner": 0.4, "width": 0.75, "lift": 0, "lip": 0.4 },
+            "ss": { "open": 0.2, "corner": 0.8, "width": 1.05, "lift": 0.5, "lip": 0.3 },
+            "uh": { "open": 0.4, "corner": 1, "width": 1, "lift": 0, "lip": 0.3 },
+            "ih": { "open": 0.3, "corner": 0.8, "width": 1.08, "lift": 0.6, "lip": 0.3 },
+            "th": { "open": 0.2, "corner": 0.8, "width": 1, "lift": 0, "lip": 0.2 },
+            "er": { "open": 0.35, "corner": 0.5, "width": 0.8, "lift": 0, "lip": 0.3 },
+            "kg": { "open": 0.3, "corner": 1, "width": 1, "lift": 0, "lip": 0.2 }
+        }
+    },
+    "shake": {
+        "amplitude": 2
+    },
+    "modes": {
+        "cyclops": false,
+        "mouth": true,
+        "smooth": true,
+        "reducedMotion": "auto"
+    },
+    "look": "wander",
+    "toggles": {
+        "autoblink": false,
+        "curious": false,
+        "sweat": false,
+        "shake": false,
+        "talk": false,
+        "laugh": false,
+        "cry": false,
+        "sigh": false
+    },
+    "eyeStates": {
+        "open": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false
+        },
+        "sad": {
+            "top": {
+                "height": 0.5,
+                "angle": 1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Sad"
+        },
+        "angry": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Anger"
+        },
+        "happy": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.3,
+                "angle": 0,
+                "curve": 0.2
+            },
+            "closed": false,
+            "group": "Happy"
+        },
+        "happySad": {
+            "top": {
+                "height": 0.5,
+                "angle": 1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": false,
+            "group": "Sad"
+        },
+        "confused": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Thinking",
+            "left": {
+                "top": {
+                    "height": 0.4,
+                    "angle": -0.3
+                }
+            }
+        },
+        "sleepy": {
+            "top": {
+                "height": 0.5,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "bottom": {
+                "height": 0.35,
+                "angle": 0,
+                "curve": -0.1
+            },
+            "closed": false,
+            "group": "Sleepy"
+        },
+        "drowsy": {
+            "top": {
+                "height": 0.72,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": -0.1
+            },
+            "closed": false,
+            "group": "Sleepy"
+        },
+        "closed": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": true
+        },
+        "winkLeft": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": "left",
+            "group": "One eye"
+        },
+        "winkRight": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": "right",
+            "group": "One eye"
+        },
+        "peekLeft": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": "right",
+            "group": "One eye"
+        },
+        "peekRight": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": "left",
+            "group": "One eye"
+        },
+        "disgusted": {
+            "top": {
+                "height": 0.45,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.3,
+                "angle": 0,
+                "curve": -0.15
+            },
+            "closed": false,
+            "group": "Disgust"
+        }
+    },
+    "mouthStates": {
+        "flat": {
+            "left": 0,
+            "right": 0,
+            "width": 16
+        },
+        "open": {
+            "left": 0,
+            "right": 0,
+            "width": 20,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6
+        },
+        "closedGasp": {
+            "left": 0,
+            "right": 0,
+            "width": 3,
+            "ownWidth": true
+        },
+        "openGasp": {
+            "left": 0,
+            "right": 0,
+            "width": 14,
+            "ownWidth": true,
+            "open": 10,
+            "leftOpen": 10,
+            "rightOpen": 10,
+            "group": "Surprise"
+        },
+        "wry": {
+            "left": 3,
+            "right": -3,
+            "width": 20,
+            "group": "Fear"
+        },
+        "softSmile": {
+            "left": 3,
+            "right": 3,
+            "width": 24,
+            "group": "Happy"
+        },
+        "smile": {
+            "left": 4,
+            "right": 4,
+            "width": 28,
+            "group": "Happy"
+        },
+        "openSmile": {
+            "left": 1,
+            "right": 1,
+            "width": 24,
+            "open": 6,
+            "group": "Happy"
+        },
+        "wideSmile": {
+            "left": 4,
+            "right": 4,
+            "width": 32,
+            "open": 8,
+            "leftOpen": 3,
+            "rightOpen": 3,
+            "group": "Happy"
+        },
+        "laugh": {
+            "left": 2,
+            "right": 2,
+            "width": 32,
+            "open": 10,
+            "leftOpen": 6,
+            "rightOpen": 6,
+            "group": "Happy"
+        },
+        "smirk": {
+            "left": 4,
+            "right": 0,
+            "width": 20,
+            "followLook": true,
+            "group": "Happy"
+        },
+        "slack": {
+            "left": -1,
+            "right": -1,
+            "width": 12,
+            "group": "Sad"
+        },
+        "frown": {
+            "left": -3,
+            "right": -3,
+            "width": 18,
+            "group": "Sad"
+        },
+        "flatBottomFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 10,
+            "leftOpen": 4,
+            "rightOpen": 4,
+            "group": "Sad"
+        },
+        "openFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6,
+            "group": "Sad"
+        },
+        "grimace": {
+            "left": -4,
+            "right": 1,
+            "width": 20,
+            "followLook": true,
+            "group": "Disgust"
+        }
+    },
+    "looks": {
+        "center": {
+            "x": 0.5,
+            "y": 0.5
+        },
+        "N": {
+            "x": 0.5,
+            "y": 0
+        },
+        "NE": {
+            "x": 1,
+            "y": 0
+        },
+        "E": {
+            "x": 1,
+            "y": 0.5
+        },
+        "SE": {
+            "x": 1,
+            "y": 1
+        },
+        "S": {
+            "x": 0.5,
+            "y": 1
+        },
+        "SW": {
+            "x": 0,
+            "y": 1
+        },
+        "W": {
+            "x": 0,
+            "y": 0.5
+        },
+        "NW": {
+            "x": 0,
+            "y": 0
+        },
+        "wander": {
+            "x": 0.5,
+            "y": 0.5,
+            "wander": true,
+            "group": "Moving"
+        },
+        "lookAround": {
+            "x": 0.5,
+            "y": 0.5,
+            "wander": {
+                "interval": 0.3,
+                "variation": 0.6
+            },
+            "group": "Moving"
+        },
+        "glanceUp": {
+            "x": 0.5,
+            "y": 0.2,
+            "path": [
+                { "x": 0.3, "y": 0.2, "holdMs": 1500 },
+                { "x": 0.7, "y": 0.15, "holdMs": 1500 },
+                { "x": 0.5, "y": 0.1, "holdMs": 1000 }
+            ],
+            "group": "Moving"
+        },
+        "scan": {
+            "x": 0.5,
+            "y": 0.5,
+            "path": [
+                { "x": 0.35, "y": 0.5, "holdMs": 1700 },
+                { "x": 0.65, "y": 0.5, "holdMs": 1700 }
+            ],
+            "group": "Moving"
+        },
+        "shakeHeadUp": {
+            "x": 0.5,
+            "y": 0,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadCenterSlow": {
+            "x": 0.5,
+            "y": 0.5,
+            "shakeHead": {
+                "speed": 0.3
+            },
+            "group": "Shaking head"
+        },
+        "shakeHeadDown": {
+            "x": 0.5,
+            "y": 1,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "nodLeft": {
+            "x": 0,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodRight": {
+            "x": 1,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "follow": {
+            "x": 0.5,
+            "y": 0.5,
+            "follow": true,
+            "group": "Moving"
+        }
+    },
+    "moods": {
+        "default": {
+            "look": "wander",
+            "autoblink": true
+        },
+        "happy": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "group": "Happy"
+        },
+        "laughing": {
+            "eyes": "happy",
+            "mouth": "laugh",
+            "laugh": true,
+            "group": "Happy"
+        },
+        "proud": {
+            "eyes": "happySad",
+            "mouth": "smile",
+            "group": "Happy"
+        },
+        "happyYes": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "look": "nodCenter",
+            "group": "Happy"
+        },
+        "happyNo": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "look": "shakeHeadCenter",
+            "group": "Happy"
+        },
+        "smirk": {
+            "mouth": "smirk",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Happy"
+        },
+        "winkingLeft": {
+            "eyes": "winkLeft",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
+        "winkingRight": {
+            "eyes": "winkRight",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
+        "yes": {
+            "look": "nodCenter"
+        },
+        "no": {
+            "look": "shakeHeadCenter"
+        },
+        "talking": {
+            "talk": true
+        },
+        "bored": {
+            "mouth": "flat",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            }
+        },
+        "disappointed": {
+            "mouth": "flat",
+            "look": "center",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Sad"
+        },
+        "disappointedNo": {
+            "mouth": "flat",
+            "look": "shakeHeadCenterSlow",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Sad"
+        },
+        "asleep": {
+            "eyes": "closed",
+            "mouth": "closedGasp",
+            "look": "center",
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "peaceful": {
+            "eyes": "sleepy",
+            "look": "center",
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "yawning": {
+            "eyes": "sleepy",
+            "mouth": "open",
+            "look": "center",
+            "sigh": true,
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "waking": {
+            "look": "center",
+            "intro": [
+                { "eyes": "closed", "ms": 600 },
+                { "eyes": "drowsy", "ms": 500 },
+                { "eyes": "sleepy", "ms": 450 },
+                { "eyes": "drowsy", "ms": 350 },
+                { "eyes": "sleepy", "ms": 700 }
+            ],
+            "group": "Sleepy"
+        },
+        "confused": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "group": "Thinking"
+        },
+        "thinking": {
+            "mouth": "flat",
+            "look": "NW",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.4,
+                        "angle": -0.3,
+                        "curve": 0.15
+                    },
+                    "bottom": {
+                        "height": 0.3,
+                        "curve": 0.15
+                    }
+                }
+            },
+            "group": "Thinking"
+        },
+        "confusedYes": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "look": "nodCenter",
+            "group": "Thinking"
+        },
+        "confusedNo": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "look": "shakeHeadCenter",
+            "group": "Thinking"
+        },
+        "surprised": {
+            "mouth": "openGasp",
+            "group": "Surprise"
+        },
+        "startled": {
+            "mouth": "closedGasp",
+            "scale": 1.12,
+            "intro": [
+                {
+                    "scale": 1.3,
+                    "ms": 150
+                }
+            ],
+            "group": "Surprise"
+        },
+        "curious": {
+            "mouth": "closedGasp",
+            "look": "follow",
+            "curious": true,
+            "group": "Surprise"
+        },
+        "surprisedYes": {
+            "mouth": "openGasp",
+            "look": "nodCenter",
+            "group": "Surprise"
+        },
+        "surprisedNo": {
+            "mouth": "openGasp",
+            "look": "shakeHeadCenter",
+            "group": "Surprise"
+        },
+        "sad": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "group": "Sad"
+        },
+        "sighing": {
+            "eyes": "sad",
+            "mouth": "flat",
+            "look": "S",
+            "sigh": true,
+            "group": "Sad"
+        },
+        "worried": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "group": "Fear"
+        },
+        "scared": {
+            "eyes": "sad",
+            "mouth": "flatBottomFrown",
+            "look": "lookAround",
+            "sweat": true,
+            "shake": true,
+            "group": "Fear"
+        },
+        "peekingLeft": {
+            "eyes": "peekLeft",
+            "mouth": "wry",
+            "look": "W",
+            "group": "Fear"
+        },
+        "peekingRight": {
+            "eyes": "peekRight",
+            "mouth": "wry",
+            "look": "E",
+            "group": "Fear"
+        },
+        "worriedYes": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "look": "nodCenter",
+            "group": "Fear"
+        },
+        "worriedNo": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "look": "shakeHeadCenter",
+            "group": "Fear"
+        },
+        "sobbing": {
+            "eyes": "happySad",
+            "mouth": "openFrown",
+            "cry": true,
+            "group": "Sad"
+        },
+        "sadYes": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "look": "nodCenter",
+            "group": "Sad"
+        },
+        "sadNo": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "look": "shakeHeadCenter",
+            "group": "Sad"
+        },
+        "angry": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "group": "Anger"
+        },
+        "furious": {
+            "eyes": "angry",
+            "mouth": "openFrown",
+            "curious": true,
+            "shake": true,
+            "group": "Anger"
+        },
+        "angryYes": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "look": "nodCenter",
+            "group": "Anger"
+        },
+        "angryNo": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "look": "shakeHeadCenter",
+            "group": "Anger"
+        },
+        "disgusted": {
+            "eyes": "disgusted",
+            "mouth": "grimace",
+            "look": "SW",
+            "group": "Disgust"
+        }
+    }
+};

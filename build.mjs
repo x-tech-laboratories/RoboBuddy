@@ -1,11 +1,17 @@
-// Builds dist/roboeyes.js, dist/config.js and dist/defaultConfig.json (ES modules + .d.ts) with tsc, then dist/roboeyes.global.js for
-// plain <script> tags.
+// Builds dist/roboeyes.js, dist/config.js and dist/defaultConfig.json (ES modules + .d.ts) with tsc, then dist/defaultConfig.js and
+// dist/roboeyes.global.js for plain <script> tags.
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 execSync('tsc -p .', { stdio: 'inherit' });
-// config.js goes first, since roboeyes.js uses it; their imports and re-exports become one shared scope.
-// The JSON import becomes the JSON itself, since a script tag cannot import it.
 const defaults = readFileSync('src/defaultConfig.json', 'utf8');
+// config.js takes the defaults from a script module instead of JSON, which a page that only allows scripts can still load.
+const jsonImport = "from './defaultConfig.json' with { type: 'json' };";
+const config = readFileSync('dist/config.js', 'utf8');
+if (!config.includes(jsonImport)) throw new Error('dist/config.js no longer imports defaultConfig.json as expected');
+writeFileSync('dist/defaultConfig.js', `export default ${defaults.trim()};\n`);
+writeFileSync('dist/config.js', config.replace(jsonImport, "from './defaultConfig.js';"));
+// config.js goes first, since roboeyes.js uses it; their imports and re-exports become one shared scope.
+// The defaults import becomes the defaults themselves, since a script tag cannot import them.
 let js = ['dist/config.js', 'dist/speech.js', 'dist/roboeyes.js'].map((file) => readFileSync(file, 'utf8')).join('\n')
     .replace(/^import defaultConfigJson .*\n/m, () => `const defaultConfigJson = ${defaults};\n`)
     .replace(/^(?:import .*|export (?:\*|\{[^}]*\}) from .*)\n/gm, '');
