@@ -226,6 +226,20 @@
             "closed": false,
             "group": "Sleepy"
         },
+        "drowsy": {
+            "top": {
+                "height": 0.72,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": -0.1
+            },
+            "closed": false,
+            "group": "Sleepy"
+        },
         "closed": {
             "top": {
                 "height": 0,
@@ -308,21 +322,6 @@
             },
             "closed": false,
             "group": "Disgust"
-        },
-        "hearts": {
-            "top": {
-                "height": 0,
-                "angle": 0,
-                "curve": 0
-            },
-            "bottom": {
-                "height": 0,
-                "angle": 0,
-                "curve": 0
-            },
-            "closed": false,
-            "shape": "heart",
-            "group": "Love"
         }
     },
     "mouthStates": {
@@ -686,22 +685,11 @@
         "waking": {
             "look": "center",
             "intro": [
-                {
-                    "eyes": "closed",
-                    "ms": 500
-                },
-                {
-                    "eyes": "sleepy",
-                    "ms": 400
-                },
-                {
-                    "eyes": "closed",
-                    "ms": 300
-                },
-                {
-                    "eyes": "sleepy",
-                    "ms": 600
-                }
+                { "eyes": "closed", "ms": 600 },
+                { "eyes": "drowsy", "ms": 500 },
+                { "eyes": "sleepy", "ms": 450 },
+                { "eyes": "drowsy", "ms": 350 },
+                { "eyes": "sleepy", "ms": 700 }
             ],
             "group": "Sleepy"
         },
@@ -867,13 +855,6 @@
             "mouth": "grimace",
             "look": "SW",
             "group": "Disgust"
-        },
-        "inLove": {
-            "eyes": "hearts",
-            "mouth": "softSmile",
-            "look": "center",
-            "scale": 1.1,
-            "group": "Love"
         }
     }
 }

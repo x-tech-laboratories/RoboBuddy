@@ -1195,11 +1195,12 @@ export class RoboEyes {
             this.introStep = this.introQueue.shift();
             this.applyMoodStates(this.introStep);
             this.introEnd = this.introStep ? millis() + Math.max(0, this.introStep.ms) : 0;
+            if (!this.introStep && !still) this.transitionEnd = millis() + this.transitionMs; // ease from the last step into the mood's own states
         }
         const scale = Math.max(0.1, this.introStep?.scale ?? mood.scale ?? baseMood.scale ?? 1);
         // Port: a mood that has just changed eases in more slowly than the usual half of the way a frame; an intro
-        // step's scale doesn't, so a pop is quick
-        const moodSpeed = !still && !this.introStep?.scale && millis() < this.transitionEnd ? this.transitionSpeed : undefined;
+        // step's scale doesn't, so a pop is quick; the steps of an intro all ease at that speed, however long it runs
+        const moodSpeed = !still && !this.introStep?.scale && (this.introStep || millis() < this.transitionEnd) ? this.transitionSpeed : undefined;
         this.eyeScale = Math.abs(scale - this.eyeScale) < 0.005 ? scale : this.eyeScale + (scale - this.eyeScale) * (moodSpeed ?? 0.5);
 
         // Port: mouth length, height and corners ease the same way
@@ -1443,26 +1444,10 @@ export class RoboEyes {
             leftCuts.push(...this.lidCuts(mid, lx, ly, lh, this.lids.left), ...this.lidCuts(mid, lx + lw, ly, lh, this.lids.right));
         }
 
-        if (eyes.shape === 'heart') {
-            // Port: heart eyes beat; a blink squashes them like any eye (reduced motion holds them still)
-            const beat = this.motionReduced() ? 1 : 1 + 0.08 * Math.max(0, Math.sin(millis() / 140)) ** 2;
-            const heart = (x: number, y: number, w: number, h: number) => {
-                const cx = x + w / 2, cy = y + h / 2, hw = w * beat * 0.62, hh = h * beat * 0.58;
-                d.strokeLine({ start: [cx, cy + hh], segments: [
-                    { control: [cx - hw * 1.25, cy + hh * 0.05], to: [cx - hw, cy - hh * 0.45] },
-                    { control: [cx - hw * 0.75, cy - hh * 1.05], to: [cx, cy - hh * 0.4] },
-                    { control: [cx + hw * 0.75, cy - hh * 1.05], to: [cx + hw, cy - hh * 0.45] },
-                    { control: [cx + hw * 1.25, cy + hh * 0.05], to: [cx, cy + hh] },
-                ] }, 1, true);
-            };
-            heart(lx, ly, lw, lh);
-            if (!this.cyclops) heart(rx, ry, rw, rh);
-        } else {
-            // Draw basic eye rectangles, with their eyelids cut out
-            d.fillRoundRect(lx, ly, lw, lh, int(this.eyeLborderRadiusCurrent * s), leftCuts); // left eye
-            if (!this.cyclops) {
-                d.fillRoundRect(rx, ry, rw, rh, int(this.eyeRborderRadiusCurrent * s), rightCuts); // right eye
-            }
+        // Draw basic eye rectangles, with their eyelids cut out
+        d.fillRoundRect(lx, ly, lw, lh, int(this.eyeLborderRadiusCurrent * s), leftCuts); // left eye
+        if (!this.cyclops) {
+            d.fillRoundRect(rx, ry, rw, rh, int(this.eyeRborderRadiusCurrent * s), rightCuts); // right eye
         }
 
         // Port: the mouth
@@ -1690,8 +1675,6 @@ function eyesWith(base: EyeState, patch?: Patch<EyeState> | null): EyeState {
         bottom: { ...base.bottom, ...withoutNulls(patch?.bottom) },
         closed: patch?.closed ?? base.closed,
     };
-    const shape = patch?.shape === null ? undefined : patch?.shape ?? base.shape;
-    if (shape) eyes.shape = shape;
     // null takes it out of its folder
     const group = patch?.group === null ? undefined : patch?.group ?? base.group;
     if (group) eyes.group = group;

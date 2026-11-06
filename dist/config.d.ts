@@ -26,9 +26,6 @@ export interface EyeState {
     /** true: both eyes stay closed, and auto blink and wander wait. 'left' or 'right' (as seen on screen): that eye
      *  stays closed, a wink, and auto blink blinks only the other. */
     closed: boolean | 'left' | 'right';
-    /** Draw each eye as this shape instead of a rounded rectangle: 'heart' is a beating heart, for love. The lids
-     *  don't apply to it, and it closes with a blink like any eye. */
-    shape?: 'heart';
 }
 /** A mouth state, in screen pixels. */
 export interface MouthState {
