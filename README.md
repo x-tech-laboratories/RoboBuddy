@@ -9,7 +9,7 @@ drawing on a `<canvas>`, plus a mouth. GPL-3.0-or-later, like the original (see 
 
 ```js
 import {
-    RoboEyes, DEFAULT, HAPPY, SAD, ANGRY, SMIRK, ASLEEP, HAPPY_ASLEEP, WORRIED, FURIOUS, N, E, ON, OFF,
+    RoboEyes, DEFAULT, HAPPY, SAD, ANGRY, SMIRK, ASLEEP, PEACEFUL, WORRIED, FURIOUS, N, E, ON, OFF,
 } from './dist/roboeyes.js';
 
 const eyes = new RoboEyes(document.querySelector('canvas'));
@@ -44,17 +44,17 @@ A face is built in layers:
      stays closed and auto blink blinks only the other), `peekLeft` or `peekRight` (the other eye shut, that one
      with happy sad's lids, the top tilted the other way) or `confused` (the left lid lowered, like one eyebrow raised)
    - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `closedGasp`,
-     `wavy`, or the open mouths `openSmile`, `wideSmile`, `laugh`, `openFrown` and `openGasp`
+     `wry`, or the open mouths `open` (a neutral one), `openSmile`, `wideSmile`, `laugh`, `openFrown` and `openGasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
      mode, which the face starts with), `lookAround` (a quick wander, for suspicious or shifty), `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
      look is set), `nodLeft`, `nodCenter` or `nodRight` (looking left, ahead or right while nodding, at the `nod`
      settings, until another look is set), or `follow` (following the point `lookAt(x, y)` gives).
      `setPosition()` and `setIdleMode()` set looks too
-   - toggles, `setAutoblinker`, `setCuriosity`, `setSweat` and `setShake` (the eyes jitter left and right; the
+   - toggles, `setAutoblinker`, `setCuriosity`, `setSweat`, `setCry` (teardrops run down from the outer corners of the eyes) and `setShake` (the eyes jitter left and right; the
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
-   `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. What it
+   `HAPPY`, `SMIRK`, `ASLEEP`, `PEACEFUL`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. What it
    leaves out comes from the `default` mood (its eye and mouth states, look, toggles, `scale` and `blink`, but not its
    `override`), and what that leaves out is `open`, `softSmile`, `wander` and the toggle defaults. So every mood starts
    from `default`, and nothing carries over from the mood before; edit `default` to change that starting point.
@@ -69,7 +69,7 @@ Every mood, with the eyes centred (the `scared` and `furious` jitter and the `sc
 
 <table>
 <tr><td align="center"><img src="screenshots/default.png" width="160" alt="default"><br>default</td><td align="center"><img src="screenshots/happy.png" width="160" alt="happy"><br>happy</td><td align="center"><img src="screenshots/smirk.png" width="160" alt="smirk"><br>smirk</td><td align="center"><img src="screenshots/bored.png" width="160" alt="bored"><br>bored</td></tr>
-<tr><td align="center"><img src="screenshots/asleep.png" width="160" alt="asleep"><br>asleep</td><td align="center"><img src="screenshots/happyAsleep.png" width="160" alt="happyAsleep"><br>happyAsleep</td><td align="center"><img src="screenshots/confused.png" width="160" alt="confused"><br>confused</td><td align="center"><img src="screenshots/surprised.png" width="160" alt="surprised"><br>surprised</td></tr>
+<tr><td align="center"><img src="screenshots/asleep.png" width="160" alt="asleep"><br>asleep</td><td align="center"><img src="screenshots/peaceful.png" width="160" alt="peaceful"><br>peaceful</td><td align="center"><img src="screenshots/confused.png" width="160" alt="confused"><br>confused</td><td align="center"><img src="screenshots/surprised.png" width="160" alt="surprised"><br>surprised</td></tr>
 <tr><td align="center"><img src="screenshots/sad.png" width="160" alt="sad"><br>sad</td><td align="center"><img src="screenshots/worried.png" width="160" alt="worried"><br>worried</td><td align="center"><img src="screenshots/scared.png" width="160" alt="scared"><br>scared</td><td align="center"><img src="screenshots/angry.png" width="160" alt="angry"><br>angry</td></tr>
 <tr><td align="center"><img src="screenshots/furious.png" width="160" alt="furious"><br>furious</td></tr>
 </table>
@@ -199,10 +199,10 @@ back (by file, drop or paste) and saves the face as an image. Your work is kept 
 - Curious, sweat, talk and shake (the original's horizontal flicker) are toggles, so a mood can turn them on or off.
   `setVFlicker()` still works but is not a toggle, so no mood changes it. The toggles' setters set them until the
   next mood.
-- New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (sleepy eyes
-  looking straight ahead, the closed gasp mouth's dot, auto blink off), `HAPPY_ASLEEP` (sleepy eyes looking straight ahead, auto blink off),
-  `WORRIED` (sad eyes, wavy mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
-  constants, `confused` (confused eyes, wavy mouth), `laughing` (happy eyes, the laugh mouth, laugh on),
+- New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (closed eyes
+  looking straight ahead, the closed gasp mouth's dot, auto blink off), `PEACEFUL` (sleepy eyes looking straight ahead, auto blink off),
+  `WORRIED` (sad eyes, wry mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
+  constants, `confused` (confused eyes, wry mouth), `laughing` (happy eyes, the laugh mouth, laugh on),
   `curious` (open eyes, the open gasp mouth, following the mouse and curious),   `surprised` (open eyes, the open gasp mouth) and `scared` (worried, but with a flat-bottomed frown, sweating, shaking and looking around quickly).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.

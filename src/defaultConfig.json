@@ -47,6 +47,16 @@
         "squint": 0.35,
         "mouthOpen": 8
     },
+    "cry": {
+        "drops": 2,
+        "speed": 0.5,
+        "fall": 18,
+        "size": 3,
+        "rise": 5,
+        "frequency": 3,
+        "amplitude": 2,
+        "mouthAmplitude": 1
+    },
     "shakeHead": {
         "amplitude": 20,
         "speed": 0.5
@@ -96,7 +106,8 @@
         "sweat": false,
         "shake": false,
         "talk": false,
-        "laugh": false
+        "laugh": false,
+        "cry": false
     },
     "eyeStates": {
         "open": {
@@ -124,7 +135,7 @@
                 "curve": 0
             },
             "closed": false,
-            "group": "Expressions"
+            "group": "Sad"
         },
         "angry": {
             "top": {
@@ -138,7 +149,7 @@
                 "curve": 0
             },
             "closed": false,
-            "group": "Expressions"
+            "group": "Anger"
         },
         "happy": {
             "top": {
@@ -152,7 +163,7 @@
                 "curve": 0.2
             },
             "closed": false,
-            "group": "Expressions"
+            "group": "Happy"
         },
         "happySad": {
             "top": {
@@ -166,7 +177,7 @@
                 "curve": 0.1
             },
             "closed": false,
-            "group": "Expressions"
+            "group": "Happy"
         },
         "confused": {
             "top": {
@@ -180,7 +191,7 @@
                 "curve": 0
             },
             "closed": false,
-            "group": "Expressions",
+            "group": "Thinking",
             "left": {
                 "top": {
                     "height": 0.4,
@@ -200,7 +211,7 @@
                 "curve": -0.1
             },
             "closed": false,
-            "group": "Expressions"
+            "group": "Sleepy"
         },
         "closed": {
             "top": {
@@ -213,8 +224,7 @@
                 "angle": 0,
                 "curve": 0
             },
-            "closed": true,
-            "group": "Closed"
+            "closed": true
         },
         "winkLeft": {
             "top": {
@@ -228,7 +238,7 @@
                 "curve": 0
             },
             "closed": "left",
-            "group": "Closed/One eye"
+            "group": "One eye"
         },
         "winkRight": {
             "top": {
@@ -242,7 +252,7 @@
                 "curve": 0
             },
             "closed": "right",
-            "group": "Closed/One eye"
+            "group": "One eye"
         },
         "peekLeft": {
             "top": {
@@ -256,7 +266,7 @@
                 "curve": 0.1
             },
             "closed": "right",
-            "group": "Closed/One eye"
+            "group": "One eye"
         },
         "peekRight": {
             "top": {
@@ -270,7 +280,7 @@
                 "curve": 0.1
             },
             "closed": "left",
-            "group": "Closed/One eye"
+            "group": "One eye"
         }
     },
     "mouthStates": {
@@ -279,12 +289,19 @@
             "right": 0,
             "width": 16
         },
+        "open": {
+            "left": 0,
+            "right": 0,
+            "width": 20,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6
+        },
         "closedGasp": {
             "left": 0,
             "right": 0,
             "width": 3,
-            "ownWidth": true,
-            "group": "Surprised"
+            "ownWidth": true
         },
         "openGasp": {
             "left": 0,
@@ -294,9 +311,9 @@
             "open": 10,
             "leftOpen": 10,
             "rightOpen": 10,
-            "group": "Surprised"
+            "group": "Surprise"
         },
-        "wavy": {
+        "wry": {
             "left": 3,
             "right": -3,
             "width": 20
@@ -305,20 +322,20 @@
             "left": 3,
             "right": 3,
             "width": 24,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "smile": {
             "left": 4,
             "right": 4,
             "width": 28,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "openSmile": {
             "left": 1,
             "right": 1,
             "width": 24,
             "open": 6,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "wideSmile": {
             "left": 4,
@@ -327,7 +344,7 @@
             "open": 8,
             "leftOpen": 3,
             "rightOpen": 3,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "laugh": {
             "left": 2,
@@ -336,26 +353,26 @@
             "open": 10,
             "leftOpen": 6,
             "rightOpen": 6,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "smirk": {
             "left": 4,
             "right": 0,
             "width": 20,
             "followLook": true,
-            "group": "Smiles"
+            "group": "Happy"
         },
         "slack": {
             "left": -1,
             "right": -1,
             "width": 12,
-            "group": "Frowns"
+            "group": "Sad"
         },
         "frown": {
             "left": -3,
             "right": -3,
             "width": 18,
-            "group": "Frowns"
+            "group": "Sad"
         },
         "flatBottomFrown": {
             "left": -6,
@@ -364,7 +381,7 @@
             "open": 10,
             "leftOpen": 4,
             "rightOpen": 4,
-            "group": "Frowns"
+            "group": "Sad"
         },
         "openFrown": {
             "left": -6,
@@ -373,7 +390,7 @@
             "open": 6,
             "leftOpen": 6,
             "rightOpen": 6,
-            "group": "Frowns"
+            "group": "Sad"
         }
     },
     "looks": {
@@ -509,13 +526,13 @@
             }
         },
         "asleep": {
-            "eyes": "sleepy",
+            "eyes": "closed",
             "mouth": "closedGasp",
             "look": "center",
             "autoblink": false,
             "group": "Sleepy"
         },
-        "happyAsleep": {
+        "peaceful": {
             "eyes": "sleepy",
             "look": "center",
             "autoblink": false,
@@ -523,7 +540,7 @@
         },
         "confused": {
             "eyes": "confused",
-            "mouth": "wavy",
+            "mouth": "wry",
             "group": "Thinking"
         },
         "thinking": {
@@ -562,7 +579,7 @@
         },
         "worried": {
             "eyes": "sad",
-            "mouth": "wavy",
+            "mouth": "wry",
             "group": "Fear"
         },
         "scared": {
@@ -572,6 +589,12 @@
             "sweat": true,
             "shake": true,
             "group": "Fear"
+        },
+        "sobbing": {
+            "eyes": "happySad",
+            "mouth": "openFrown",
+            "cry": true,
+            "group": "Sad"
         },
         "angry": {
             "eyes": "angry",

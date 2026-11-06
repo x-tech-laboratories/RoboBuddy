@@ -22,7 +22,7 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 /*
  * A face is built in layers:
  * - face states, the building blocks: an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander, or shake the head or nod) and six toggles (auto blink, curious, sweat, shake, talk and laugh).
+ *   bend), a look (where the eyes point, or wander, or shake the head or nod) and seven toggles (auto blink, curious, sweat, shake, talk, laugh and cry).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -118,6 +118,8 @@ export interface Toggles {
     talk: boolean;
     /** The face bounces with each "ha": the eyes lift and squint, and the mouth opens and bounces with them (at the laugh settings). */
     laugh: boolean;
+    /** Teardrops run down from the bottom of each eye (at the cry settings). */
+    cry: boolean;
 }
 
 /** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
@@ -206,6 +208,10 @@ export interface FaceConfig {
      *  the mouth lift each bounce (pixels), squint how far the bottom lids come up (a fraction of the eye's height) and
      *  mouthOpen how far the mouth opens at the top of a bounce (pixels). */
     laugh: { frequency: number; amplitude: number; mouthAmplitude: number; squint: number; mouthOpen: number };
+    /** The cry toggle: drops is how many tears run at once from each eye's outer corner (1 or 2), speed how far each falls a frame, fall how far
+     *  it runs before it is gone and size how wide it is (pixels) and rise how far up inside the eye it starts, so it runs from the corner. The face sobs as it
+     *  cries: frequency is how many sobs a second, amplitude and mouthAmplitude how far the eyes and the mouth lift each one (pixels). */
+    cry: { drops: number; speed: number; fall: number; size: number; rise: number; frequency: number; amplitude: number; mouthAmplitude: number };
     shakeHead: { amplitude: number; speed: number };
     /** A talking mouth: it picks a new opening every syllableMs plus up to variationMs more; pauseChance (0 to 1) is how
      *  often that opening is shut, like a gap between words. open is how far a mouth state with no
