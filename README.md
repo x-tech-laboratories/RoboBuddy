@@ -45,7 +45,7 @@ A face is built in layers:
    - a mouth state, `setMouthState(name)`: `softSmile`, `smile`, `smirk`, `slack`, `frown`, `flat`, `closedGasp`,
      `wavy`, or the open mouths `openSmile`, `wideSmile`, `laugh`, `openFrown` and `openGasp`
    - a look, `setLook(name)`: `center`, `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`, `wander` (the original's idle
-     mode, which the face starts with), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
+     mode, which the face starts with), `follow` (following the point `lookAt(x, y)` gives), `dart` (glancing from side to side, for suspicious or shifty), or `shakeHeadUp`, `shakeHeadCenter` or
      `shakeHeadDown` (looking up, ahead or down while shaking the head, at the `shakeHead` settings, until another
      look is set), or `nodLeft`, `nodCenter` or `nodRight` (looking left, ahead or right while nodding, at the `nod`
      settings, until another look is set).
@@ -56,8 +56,8 @@ A face is built in layers:
    `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. A
    eye or mouth state it leaves out is `open` or `softSmile`, a toggle it leaves out is its default, and
    a look it leaves out stays where it is. Setting a face state yourself lasts until the next mood.
-3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth and
-   smooth motion), which no mood changes.
+3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth, smooth motion
+   and reduced motion), which no mood changes.
 
 Every mood, with the eyes centred (the `scared` and `furious` jitter and the `scared` sweat drops move in the live demo):
 
@@ -100,15 +100,21 @@ Both take any part of the configuration; what is left out keeps its value. The s
 
 - `frameRate`
 - `eyes`: `left` and `right` width, height and radius, `spacing`, and `closedHeight`, how tall a closed eye stays (3
-  by default, the mouth's thickness, where the original uses 1)
+  by default, the mouth's thickness, where the original uses 1) and `offsetY`, how far the face moves down from
+  the screen's middle (0 by default: the eyes and mouth together are centred, so a centred look sits there)
 - `mouth`: `gap`, `thickness`, `curl`, `width` (the face's mouth length, 50) and `moodWidth` (off by default, so the
   mouth stays at `width`; on, the mouth state's own `width` is used instead)
 - `blink`: `interval` and `variation` (auto blink timing, in seconds) and `speed`, how much of the remaining way a
   blinking eye goes each frame (0.5, as the original). The laugh swings move at the same speed (shake head and nod have their own)
 - `wander`: `interval` and `variation`, how often a wandering look moves on
+- `follow`: `fullX` and `fullY`, how much of the way to the edge of the area being watched the point must be, across
+  and down, for a follow look's eyes to turn fully (0.6 and 0.4 by default)
 - `curious`, `laugh`, `shakeHead`, `nod` and `shake`: the amounts and timings for those (`shakeHead` and `nod` each have
   an `amplitude` and a `speed`, like `blink.speed`)
-- `modes`: `cyclops`, `mouth` and `smooth`
+- `modes`: `cyclops`, `mouth`, `smooth` and `reducedMotion`. With reduced motion each pose holds and nothing keeps
+  moving: no auto blink, wander, dart (the eyes rest at the dart's middle), shake, sweat, laugh, head shake or nod, and
+  the talk toggle's mouth rests shut. Moving between poses still eases, and `speak()` still plays. `'auto'` (the
+  default) follows the system's `prefers-reduced-motion` setting; `true` or `false` sets it either way
 - `look`: the look the face has now (the face starts with `wander`)
 - `toggles`: what each toggle is when a mood leaves it out
 - `eyeStates`, `mouthStates`, `looks` and `moods`: the face states and moods, by name. Add a key to add one
@@ -136,15 +142,20 @@ take on the vowel next to them, and fast speech opens less. It returns how long 
 the `talk` toggle off. For real lip sync, play your own timed list with `speakVisemes([{ viseme: 'ah', ms: 120 }, ...])` (for example from a
 text-to-speech engine's viseme events), or hold one shape with `setViseme('oo')` and release it with `setViseme(null)`. A look is `x` and
 `y`, fractions of how far the eyes can move (0 left or top, 1 right or bottom). `wander: true` makes it wander instead;
-`dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
+`follow: true` makes it follow the point `lookAt(x, y)` gives (fractions, like `x` and `y`; the demo points it at
+the mouse); `dart: { reach, holdMs }` makes it glance to `x - reach` and `x + reach` in turn, holding each glance for `holdMs`
 (slow for suspicious, quick for shifty). `shakeHead: true` keeps the head shaking, and `nod: true` keeps it nodding, while the eyes look there.
 
-A mood names its face states, sets toggles, and can change its eye and mouth states for itself only with `override`:
+A mood names its face states, sets toggles, and can change its eye and mouth states for itself only with `override`.
+It can also set how big the eyes are, with `scale` (a multiple of their size, so `1.12` is 12% bigger; each eye grows
+from its centre, lids and all, and big ones can reach past the screen's edge), and when they blink, with `blink`
+(`interval` and `variation` in seconds, like the face's `blink`; what it leaves out is the face's own):
 
 ```js
 eyes.configure({ moods: {
   napping: { eyes: 'closed', mouth: 'flat', look: 'S' },
   smug:   { eyes: 'angry', mouth: 'smirk', look: 'NE', override: { eyes: { top: { height: 0.25 } } } },
+  excited: { mouth: 'flat', scale: 1.12, blink: { interval: 5, variation: 0 } },
 } });
 ```
 
@@ -183,7 +194,7 @@ still be unique within its kind.
   looking straight ahead, the closed gasp mouth's dot, auto blink off), `HAPPY_ASLEEP` (sleepy eyes looking straight ahead, auto blink off),
   `WORRIED` (sad eyes, wavy mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
   constants, `confused` (confused eyes, wavy mouth),
-  `surprised` (open eyes, the open gasp mouth) and `scared` (worried, but sweating, shaking and darting its eyes
+  `curious` (open eyes, the open gasp mouth, following the mouse and curious),   `surprised` (open eyes, the open gasp mouth) and `scared` (worried, but sweating, shaking and darting its eyes
   from side to side).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.

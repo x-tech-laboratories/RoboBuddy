@@ -204,6 +204,18 @@
         face.setDisplayColors('#000', '#fff');
         face.begin(112, 80, 50);
         face.start();
+        // A follow look looks at the mouse from the face's own place: straight ahead while the mouse is over the face,
+        // and round to the eyes' limit by the time it is part of the way to the window's edge on that side
+        window.addEventListener('pointermove', (e) => {
+            const box = document.getElementById('face').getBoundingClientRect();
+            const aim = (pointer, from, to, size, full) => {
+                const side = pointer < from ? from : size - to; // room between the face and the window's edge on the mouse's side
+                const away = pointer < from ? from - pointer : Math.max(0, pointer - to);
+                const turn = side > 0 ? Math.min(1, away / (side * full)) : 0;
+                return pointer < from ? 0.5 - turn / 2 : 0.5 + turn / 2;
+            };
+            face.lookAt(aim(e.clientX, box.left, box.right, window.innerWidth, face.followFullX), aim(e.clientY, box.top, box.bottom, window.innerHeight, face.followFullY));
+        });
 
         // happyAsleep reads as "Happy asleep"
         const title = (name) => {
@@ -372,6 +384,11 @@
             [`@eye.${side}.curve`, 'Curve', -0.5, 0.5, 0.05],
         ];
         const groups = {
+            'mood-recipe': [
+                ['@mood.scale', 'Eye size (×)', 0.5, 1.5, 0.01],
+                ['@mood.blink.interval', 'Blink interval (s)', 0, 10, 0.5],
+                ['@mood.blink.variation', 'Blink random extra (s)', 0, 10, 0.5],
+            ],
             'eye-sliders': [
                 ['@eye.closed', 'Closed', 'select', [[false, 'Neither eye'], [true, 'Both eyes (auto blink and wander wait)'], ['left', 'Left eye (a wink)'], ['right', 'Right eye (a wink)']]],
                 ['Top eyelid'], ...lid('top'),
@@ -390,6 +407,7 @@
             ],
             'look-sliders': [
                 ['@look.wander', 'Wander (look somewhere random every so often)', 'check'],
+                ['@look.follow', 'Follow (look at the mouse)', 'check'],
                 ['@look.dart', 'Dart (glance from side to side)', 'check'],
                 ['@look.shakeHead', 'Shake head', 'check'],
                 ['@look.nod', 'Nod', 'check'],
@@ -425,6 +443,9 @@
                 ['Curious'],
                 ['curious.growth', 'Outer eye growth', 0, 20, 1],
                 ['curious.edge', 'Distance from edge', 0, 40, 1],
+                ['Follow'],
+                ['follow.fullX', 'Turn fully across at (share of the way to the edge)', 0.1, 1, 0.05],
+                ['follow.fullY', 'Turn fully down at (share of the way to the edge)', 0.1, 1, 0.05],
                 ['Shake'],
                 ['shake.amplitude', 'Jitter (px)', 0, 20, 1],
             ],
@@ -441,6 +462,7 @@
                 ['blink.speed', 'Blink speed', 0.05, 1, 0.05],
                 ['eyes.spacing', 'Space between', -20, 60, 1],
                 ['eyes.closedHeight', 'Height when closed', 0, 20, 1],
+                ['eyes.offsetY', 'Face moved down by (px, from centred)', -20, 20, 1],
                 ['Mouth'],
                 ['mouth.gap', 'Height below eyes', 0, 30, 1],
                 ['mouth.thickness', 'Thickness', 1, 10, 1],
@@ -449,6 +471,7 @@
                 ['mouth.width', 'Length, when the mouth state doesn\'t set it', 0, 60, 1],
                 ['Screen'],
                 ['frameRate', 'Frame rate', 5, 60, 1],
+                ['modes.reducedMotion', 'Motion', 'select', [['auto', 'Follow the system (prefers-reduced-motion)'], [true, 'Reduced: hold each pose'], [false, 'Full']]],
             ],
         };
         // Which eye the lid sliders edit: both (the shared lids), or one eye's own
@@ -463,6 +486,7 @@
             .replace(/^@eye\./, `eyeStates.${face.eyeState}.`)
             .replace(/^@mouth\./, `mouthStates.${face.mouthState}.`)
             .replace(/^@look\./, `looks.${face.look}.`)
+            .replace(/^@mood\./, `moods.${face.mood}.`)
             .split('.');
         const dig = (config, keys) => keys.reduce((o, key) => o?.[key], config);
         // One eye's lid shows the shared value until that eye has its own
@@ -553,15 +577,17 @@
                 const value = get(config, path);
                 if (input.type === 'checkbox') input.checked = !!value;
                 else if (input.tagName === 'SELECT') input.value = JSON.stringify(value ?? false);
-                else input.value = value ?? config.mouth.width; // a mouth state without a length shows the face's
+                // What a slider shows when the setting is left out: the mood's eyes at their own size and the face's blink;
+                // a mouth state without a length shows the face's
+                else input.value = value ?? { '@mood.scale': 1, '@mood.blink.interval': config.blink.interval, '@mood.blink.variation': config.blink.variation }[path] ?? config.mouth.width;
                 out.textContent = value === undefined ? '' : `(${value})`;
             }
             // Sliders that would do nothing right now
             const disable = (path, off) => inputs.find((i) => i.path === path).input.disabled = off;
             disable('@mouth.width', !config.mouth.moodWidth && !face.mouthStates[face.mouthState]?.ownWidth);
-            const wandering = !!face.looks[face.look]?.wander, darting = !!face.looks[face.look]?.dart;
-            disable('@look.x', wandering);
-            disable('@look.y', wandering);
+            const wandering = !!face.looks[face.look]?.wander, darting = !!face.looks[face.look]?.dart, following = !!face.looks[face.look]?.follow;
+            disable('@look.x', wandering || following);
+            disable('@look.y', wandering || following);
             disable('@look.dart.reach', !darting);
             disable('@look.dart.holdMs', !darting);
 

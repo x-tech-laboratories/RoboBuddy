@@ -12,7 +12,8 @@
             "radius": 8
         },
         "spacing": 10,
-        "closedHeight": 3
+        "closedHeight": 3,
+        "offsetY": 0
     },
     "mouth": {
         "gap": 16,
@@ -34,6 +35,10 @@
     "curious": {
         "growth": 8,
         "edge": 10
+    },
+    "follow": {
+        "fullX": 0.6,
+        "fullY": 0.4
     },
     "laugh": {
         "amplitude": 5,
@@ -79,7 +84,8 @@
     "modes": {
         "cyclops": false,
         "mouth": true,
-        "smooth": true
+        "smooth": true,
+        "reducedMotion": "auto"
     },
     "look": "wander",
     "toggles": {
@@ -410,6 +416,12 @@
             "wander": true,
             "group": "Moving"
         },
+        "follow": {
+            "x": 0.5,
+            "y": 0.5,
+            "follow": true,
+            "group": "Moving"
+        },
         "dart": {
             "x": 0.5,
             "y": 0.5,
@@ -458,7 +470,12 @@
     },
     "moods": {
         "default": {
-            "look": "wander"
+            "look": "center",
+            "autoblink": true
+        },
+        "idle": {
+            "look": "wander",
+            "autoblink": true
         },
         "happy": {
             "eyes": "happy",
@@ -503,8 +520,31 @@
             "eyes": "confused",
             "mouth": "wavy"
         },
+        "thinking": {
+            "mouth": "flat",
+            "look": "NW",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.4,
+                        "angle": -0.3,
+                        "curve": 0.15
+                    },
+                    "bottom": {
+                        "height": 0.3,
+                        "curve": 0.15
+                    }
+                }
+            }
+        },
         "surprised": {
             "mouth": "openGasp"
+        },
+        "curious": {
+            "eyes": "open",
+            "mouth": "closedGasp",
+            "look": "follow",
+            "curious": true
         },
         "sad": {
             "eyes": "sad",
