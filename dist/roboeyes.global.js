@@ -416,39 +416,48 @@ const defaultConfigJson = {
     "looks": {
         "center": {
             "x": 0.5,
-            "y": 0.5
+            "y": 0.5,
+            "group": "Coordinates"
         },
         "N": {
             "x": 0.5,
-            "y": 0
+            "y": 0,
+            "group": "Coordinates"
         },
         "NE": {
             "x": 1,
-            "y": 0
+            "y": 0,
+            "group": "Coordinates"
         },
         "E": {
             "x": 1,
-            "y": 0.5
+            "y": 0.5,
+            "group": "Coordinates"
         },
         "SE": {
             "x": 1,
-            "y": 1
+            "y": 1,
+            "group": "Coordinates"
         },
         "S": {
             "x": 0.5,
-            "y": 1
+            "y": 1,
+            "group": "Coordinates"
         },
         "SW": {
             "x": 0,
-            "y": 1
+            "y": 1,
+            "group": "Coordinates"
         },
         "W": {
             "x": 0,
-            "y": 0.5
+            "y": 0.5,
+            "group": "Coordinates"
         },
         "NW": {
             "x": 0,
-            "y": 0
+            "y": 0,
+            "group": "Coordinates"
         },
         "wander": {
             "x": 0.5,
@@ -524,6 +533,11 @@ const defaultConfigJson = {
             "laugh": true,
             "group": "Happy"
         },
+        "proud": {
+            "eyes": "happySad",
+            "mouth": "smile",
+            "group": "Happy"
+        },
         "smirk": {
             "mouth": "smirk",
             "override": {
@@ -586,7 +600,6 @@ const defaultConfigJson = {
             "group": "Surprise"
         },
         "curious": {
-            "eyes": "open",
             "mouth": "closedGasp",
             "look": "follow",
             "curious": true,
@@ -624,7 +637,6 @@ const defaultConfigJson = {
         "furious": {
             "eyes": "angry",
             "mouth": "openFrown",
-            "look": "wander",
             "curious": true,
             "shake": true,
             "group": "Anger"
