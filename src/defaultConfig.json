@@ -513,6 +513,11 @@
                     }
                 }
             },
+        "proud": {
+            "eyes": "happySad",
+            "mouth": "smile",
+            "group": "Happy"
+        },
             "group": "Happy"
         },
         "bored": {

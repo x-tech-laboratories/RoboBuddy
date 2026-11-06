@@ -203,6 +203,7 @@ back (by file, drop or paste) and saves the face as an image. Your work is kept 
   looking straight ahead, the closed gasp mouth's dot, auto blink off), `PEACEFUL` (sleepy eyes looking straight ahead, auto blink off),
   `WORRIED` (sad eyes, wry mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
   constants, `confused` (confused eyes, wry mouth), `laughing` (happy eyes, the laugh mouth, laugh on),
+  `proud` (happy sad eyes, the smile mouth),
   `curious` (open eyes, the open gasp mouth, following the mouse and curious),   `surprised` (open eyes, the open gasp mouth) and `scared` (worried, but with a flat-bottomed frown, sweating, shaking and looking around quickly).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.
