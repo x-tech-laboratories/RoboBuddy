@@ -84,7 +84,7 @@ const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'peac
 // Port: the position constants name these entries of FaceConfig.looks
 const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
-const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh', cry: 'cry' };
+const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh', cry: 'cry', sigh: 'sigh' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
 export class CanvasDisplay {
     constructor(canvas, options = {}) {
@@ -419,6 +419,18 @@ export class RoboEyes {
         this.cryLast = 0; // when the sobbing was last stepped, in milliseconds
         this.cryY = 0; // the sob now, added to the eyes
         this.cryMouthY = 0; // and to the mouth
+        // Port: the sigh toggle - a slow breath out: the eyes and mouth sink and the mouth opens a little, then they rise again
+        this.sigh = defaultConfig.toggles.sigh;
+        this.sighFrequency = defaultConfig.sigh.frequency; // sighs per second
+        this.sighAmplitude = defaultConfig.sigh.amplitude; // how far the eyes sink, in pixels
+        this.sighMouthAmplitude = defaultConfig.sigh.mouthAmplitude; // how far the mouth sinks, in pixels
+        this.sighMouthOpen = defaultConfig.sigh.mouthOpen; // how far the mouth opens at the bottom of a sigh, in pixels
+        this.sighMouthNarrow = defaultConfig.sigh.mouthNarrow; // how much of its length the mouth loses at the bottom of a sigh, 0 to 1
+        this.sighLevel = 0; // 0 to 1: how far into sighing the face is, easing in and out as the toggle changes
+        this.sighPhase = 0; // where the breath is, in radians
+        this.sighY = 0; // the sink now, added to the eyes
+        this.sighMouthY = 0; // and to the mouth
+        this.sighOpenAmount = 0; // 0 to 1: how open the mouth is for the sigh right now
         this.tears = [[], []]; // each eye's drops: how far they have fallen and how far they wander from the corner
         // Animation - sweat on the forehead
         this.sweat = false;
@@ -472,6 +484,7 @@ export class RoboEyes {
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             follow: { fullX: this.followFullX, fullY: this.followFullY },
             laugh: { frequency: this.laughFrequency, amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, squint: this.laughSquint, mouthOpen: this.laughMouthOpen },
+            sigh: { frequency: this.sighFrequency, amplitude: this.sighAmplitude, mouthAmplitude: this.sighMouthAmplitude, mouthOpen: this.sighMouthOpen, mouthNarrow: this.sighMouthNarrow },
             cry: { drops: this.cryDrops, speed: this.crySpeed, fall: this.cryFall, size: this.crySize, rise: this.cryRise, frequency: this.cryFrequency, amplitude: this.cryAmplitude, mouthAmplitude: this.cryMouthAmplitude },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
             talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway, visemes: structuredClone(this.visemes) },
@@ -528,6 +541,11 @@ export class RoboEyes {
         this.laughFrequency = c.laugh.frequency;
         this.laughSquint = c.laugh.squint;
         this.laughMouthOpen = c.laugh.mouthOpen;
+        this.sighFrequency = c.sigh.frequency;
+        this.sighAmplitude = c.sigh.amplitude;
+        this.sighMouthAmplitude = c.sigh.mouthAmplitude;
+        this.sighMouthOpen = c.sigh.mouthOpen;
+        this.sighMouthNarrow = Math.max(0, Math.min(1, c.sigh.mouthNarrow));
         this.cryDrops = Math.max(0, Math.min(2, Math.round(c.cry.drops))); // two lanes at most
         this.crySpeed = Math.max(0.1, c.cry.speed);
         this.cryFall = Math.max(1, c.cry.fall);
@@ -582,7 +600,7 @@ export class RoboEyes {
             if (look.follow)
                 this.looks[name].follow = true;
             if (look.shakeHead)
-                this.looks[name].shakeHead = true;
+                this.looks[name].shakeHead = typeof look.shakeHead === 'object' ? withoutNulls(look.shakeHead) : true;
             if (look.nod)
                 this.looks[name].nod = true;
         }
@@ -848,6 +866,10 @@ export class RoboEyes {
     setSweat(sweatBit) {
         this.sweat = sweatBit; // turn sweat on or off
     }
+    // Port: the sigh toggle - sighs until turned off. The next mood sets it again.
+    setSigh(sighBit) {
+        this.sigh = sighBit;
+    }
     // Port: the cry toggle - teardrops run down from under the eyes. The next mood sets it again.
     setCry(cryBit) {
         this.cry = cryBit;
@@ -1056,7 +1078,7 @@ export class RoboEyes {
         }
         const shape = typeof this.viseme === 'string' ? this.visemes[this.viseme] : this.viseme ?? undefined;
         const talking = this.mouthTalk || !!shape;
-        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext * (shape?.width ?? 1));
+        this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext * (shape?.width ?? 1) * (1 - this.sighMouthNarrow * this.sighOpenAmount)); // port: a sigh shortens the mouth as it opens
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
         // Port: a talking mouth picks a new opening each syllable, sometimes shut for a gap between words. The upper lip
         // lifts with the opening, and each corner follows it only loosely, on its own timing, and sways a little.
@@ -1099,6 +1121,13 @@ export class RoboEyes {
             this.mouthLeftCurrent = Math.max(this.mouthLeftCurrent, this.int((laughShape?.left ?? 0) * this.laughLevel));
             this.mouthRightCurrent = Math.max(this.mouthRightCurrent, this.int((laughShape?.right ?? 0) * this.laughLevel));
         }
+        // Port: a sigh opens the mouth a little as the breath goes out, over whatever it was doing
+        if (this.sighLevel > 0) {
+            const wide = this.sighMouthOpen * this.sighOpenAmount;
+            this.mouthOpenCurrent = Math.max(this.mouthOpenCurrent, this.int(wide));
+            this.mouthLeftOpenCurrent = Math.max(this.mouthLeftOpenCurrent, this.int(wide * 0.5));
+            this.mouthRightOpenCurrent = Math.max(this.mouthRightOpenCurrent, this.int(wide * 0.5));
+        }
         //// APPLYING MACRO ANIMATIONS ////
         if (this.autoblinker && !this.eyesClosed && !still) {
             if (millis() >= this.blinktimer) {
@@ -1140,11 +1169,24 @@ export class RoboEyes {
         const sob = still ? 0 : 0.5 - 0.5 * Math.cos(this.cryPhase);
         this.cryY = this.int(-sob * this.cryAmplitude * this.cryLevel);
         this.cryMouthY = this.int(-sob * this.cryMouthAmplitude * this.cryLevel);
+        // Port: a sigh is one slow sink and rise of the eyes and mouth, with the mouth opening at the bottom
+        this.sighLevel = Math.max(0, Math.min(1, this.sighLevel + (this.sigh ? dt / 300 : -dt / 300)));
+        if (this.sighLevel === 0)
+            this.sighPhase = 0;
+        else if (!still)
+            this.sighPhase += 2 * Math.PI * this.sighFrequency * dt / 1000;
+        const breath = still ? 0 : 0.5 - 0.5 * Math.cos(this.sighPhase);
+        this.sighY = this.int(breath * this.sighAmplitude * this.sighLevel);
+        this.sighMouthY = this.int(breath * this.sighMouthAmplitude * this.sighLevel);
+        this.sighOpenAmount = this.sighLevel * breath;
         this.laughOpenAmount = this.laughLevel * (0.35 + 0.65 * (still ? 1 : lift)); // never quite shut, so it reads as laughing
         // Port: each swing eases like a blink, and turns back once it arrives
-        this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.shakeHeadSpeed);
+        const ownShakeSpeed = typeof this.looks[this.look]?.shakeHead === 'object' ? this.looks[this.look].shakeHead.speed : undefined;
+        this.shakeX = this.ease(this.shakeX, this.shakeXNext, ownShakeSpeed !== undefined ? Math.max(0.05, Math.min(0.8, ownShakeSpeed)) : this.shakeHeadSpeed);
         // Port: turning back takes the amplitude as it is now, so changing it applies to a swing already going
-        if (this.shakeHead && this.shakeX === this.shakeXNext)
+        // A look with its own speed turns back a little short of the end, so the easing doesn't make it linger there
+        const turnAt = ownShakeSpeed !== undefined ? this.shakeHeadAmplitude * 0.15 : 0;
+        if (this.shakeHead && Math.abs(this.shakeXNext - this.shakeX) <= turnAt)
             this.shakeXNext = this.shakeXNext > 0 ? -this.shakeHeadAmplitude : this.shakeHeadAmplitude;
         this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.nodSpeed);
         this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, this.nodSpeed);
@@ -1224,8 +1266,8 @@ export class RoboEyes {
         // Port: and the mood's scale grows each eye from its centre
         const s = this.eyeScale;
         const grown = (x, y, w, h) => [int(x - w * (s - 1) / 2), int(y - h * (s - 1) / 2), int(w * s), int(h * s)];
-        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + this.laughY + this.cryY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
-        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + this.laughY + this.cryY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
+        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + this.laughY + this.cryY + this.sighY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
+        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + this.laughY + this.cryY + this.sighY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
         const leftCuts = [];
         const rightCuts = [];
         if (!this.cyclops) {
@@ -1437,7 +1479,7 @@ export class RoboEyes {
         const cx = (leftEdge + rightEdge) / 2 + this.shakeX;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
         const tallest = Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault); // the eyes' shared bottom edge
-        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY + this.laughMouthY + this.cryMouthY;
+        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY + this.laughMouthY + this.cryMouthY + this.sighMouthY;
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * this.mouthCurl; // how much of each end bends
         const clamp = (lift) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long

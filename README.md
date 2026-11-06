@@ -51,7 +51,7 @@ A face is built in layers:
      look is set), `nodLeft`, `nodCenter` or `nodRight` (looking left, ahead or right while nodding, at the `nod`
      settings, until another look is set), or `follow` (following the point `lookAt(x, y)` gives).
      `setPosition()` and `setIdleMode()` set looks too
-   - toggles, `setAutoblinker`, `setCuriosity`, `setSweat`, `setCry` (teardrops run down from the outer corners of the eyes) and `setShake` (the eyes jitter left and right; the
+   - toggles, `setAutoblinker`, `setCuriosity`, `setSweat`, `setCry` (teardrops run down from the outer corners of the eyes), `setSigh` (the eyes and mouth sink in a slow breath out) and `setShake` (the eyes jitter left and right; the
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
    `HAPPY`, `SMIRK`, `ASLEEP`, `PEACEFUL`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. What it

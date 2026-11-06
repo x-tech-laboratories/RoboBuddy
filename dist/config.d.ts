@@ -63,8 +63,11 @@ export interface LookState {
     /** Instead of holding still, follow the point set with lookAt() (the demo sets it to the mouse). x and y are
      *  where the eyes rest until lookAt() is first called. */
     follow?: boolean;
-    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
-    shakeHead?: boolean;
+    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. An object
+     *  gives this look its own speed, instead of the shakeHead setting's. */
+    shakeHead?: boolean | {
+        speed?: number;
+    };
     /** Keep nodding while looking here (at the nod settings), until another look is set. */
     nod?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
@@ -85,6 +88,8 @@ export interface Toggles {
     laugh: boolean;
     /** Teardrops run down from the bottom of each eye (at the cry settings). */
     cry: boolean;
+    /** The face lets out a slow breath: the eyes and mouth sink and the mouth opens a little, then they come back (at the sigh settings). */
+    sigh: boolean;
 }
 /** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
 export interface Viseme {
@@ -211,6 +216,16 @@ export interface FaceConfig {
         frequency: number;
         amplitude: number;
         mouthAmplitude: number;
+    };
+    /** The sigh toggle: frequency is how many sighs a second (well under one), amplitude and mouthAmplitude how far the eyes and the mouth sink (pixels) and
+     *  mouthOpen how far the mouth opens at the bottom of a sigh (pixels) and
+     *  mouthNarrow how much of its length the mouth loses as it opens (0 to 1). */
+    sigh: {
+        frequency: number;
+        amplitude: number;
+        mouthAmplitude: number;
+        mouthOpen: number;
+        mouthNarrow: number;
     };
     shakeHead: {
         amplitude: number;

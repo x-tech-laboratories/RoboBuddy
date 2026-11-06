@@ -263,6 +263,17 @@ export declare class RoboEyes {
     cryLast: number;
     cryY: number;
     cryMouthY: number;
+    sigh: boolean;
+    sighFrequency: number;
+    sighAmplitude: number;
+    sighMouthAmplitude: number;
+    sighMouthOpen: number;
+    sighMouthNarrow: number;
+    sighLevel: number;
+    sighPhase: number;
+    sighY: number;
+    sighMouthY: number;
+    sighOpenAmount: number;
     tears: {
         y: number;
         dx: number;
@@ -334,6 +345,7 @@ export declare class RoboEyes {
     setHFlicker(flickerBit: boolean, amplitude?: number): void;
     setVFlicker(flickerBit: boolean, amplitude?: number): void;
     setSweat(sweatBit: boolean): void;
+    setSigh(sighBit: boolean): void;
     setCry(cryBit: boolean): void;
     setMouth(mouthBit: boolean): void;
     setMouthWidth(width: number): void;

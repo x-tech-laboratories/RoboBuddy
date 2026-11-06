@@ -22,7 +22,7 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 /*
  * A face is built in layers:
  * - face states, the building blocks: an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander, or shake the head or nod) and seven toggles (auto blink, curious, sweat, shake, talk, laugh and cry).
+ *   bend), a look (where the eyes point, or wander, or shake the head or nod) and eight toggles (auto blink, curious, sweat, shake, talk, laugh, cry and sigh).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -97,8 +97,9 @@ export interface LookState {
     /** Instead of holding still, follow the point set with lookAt() (the demo sets it to the mouse). x and y are
      *  where the eyes rest until lookAt() is first called. */
     follow?: boolean;
-    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
-    shakeHead?: boolean;
+    /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. An object
+     *  gives this look its own speed, instead of the shakeHead setting's. */
+    shakeHead?: boolean | { speed?: number };
     /** Keep nodding while looking here (at the nod settings), until another look is set. */
     nod?: boolean;
     /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
@@ -120,6 +121,8 @@ export interface Toggles {
     laugh: boolean;
     /** Teardrops run down from the bottom of each eye (at the cry settings). */
     cry: boolean;
+    /** The face lets out a slow breath: the eyes and mouth sink and the mouth opens a little, then they come back (at the sigh settings). */
+    sigh: boolean;
 }
 
 /** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
@@ -212,6 +215,10 @@ export interface FaceConfig {
      *  it runs before it is gone and size how wide it is (pixels) and rise how far up inside the eye it starts, so it runs from the corner. The face sobs as it
      *  cries: frequency is how many sobs a second, amplitude and mouthAmplitude how far the eyes and the mouth lift each one (pixels). */
     cry: { drops: number; speed: number; fall: number; size: number; rise: number; frequency: number; amplitude: number; mouthAmplitude: number };
+    /** The sigh toggle: frequency is how many sighs a second (well under one), amplitude and mouthAmplitude how far the eyes and the mouth sink (pixels) and
+     *  mouthOpen how far the mouth opens at the bottom of a sigh (pixels) and
+     *  mouthNarrow how much of its length the mouth loses as it opens (0 to 1). */
+    sigh: { frequency: number; amplitude: number; mouthAmplitude: number; mouthOpen: number; mouthNarrow: number };
     shakeHead: { amplitude: number; speed: number };
     /** A talking mouth: it picks a new opening every syllableMs plus up to variationMs more; pauseChance (0 to 1) is how
      *  often that opening is shut, like a gap between words. open is how far a mouth state with no
