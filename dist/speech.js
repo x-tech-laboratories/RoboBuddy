@@ -27,6 +27,10 @@ const WORDS = {
 /** The digits, said one at a time. */
 const DIGITS = ['ss ee er o', 'oo uh ss', 'ss oo', 'th er ee', 'fv o', 'fv ah ee fv', 'ss ih kg ss', 'ss eh fv uh ss', 'eh ee ss', 'ss ah ee ss'];
 const isVowel = (c) => c !== '' && 'aeiou'.includes(c);
+/** record[key] if the key is the record's own, so a word like "constructor" never finds a built-in property. */
+function own(record, key) {
+    return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
 /** The sounds of one word, by spelling. */
 export function wordSounds(word) {
     const w = word.replace(/'/g, '');
@@ -250,7 +254,7 @@ export function textToVisemes(text, visemes, options = {}) {
         const first = queue.length;
         let stressed = false;
         names.forEach((name) => {
-            if (!visemes[name])
+            if (!own(visemes, name))
                 return;
             const isVowelSound = VOWELS.has(name);
             const sound = { name, ms: SOUND_MS[name] ?? 80, stressed: isVowelSound && !stressed && name !== 'uh', wordEnd: false, pause: false };
@@ -266,12 +270,13 @@ export function textToVisemes(text, visemes, options = {}) {
         }
     };
     for (const token of SPELLED(text).match(/[a-z]+(?:'[a-z]+)*|\d|[,.;:!?\-\n]/g) ?? []) {
-        if (PAUSE_MS[token])
-            queue.push({ name: 'rest', ms: PAUSE_MS[token], stressed: false, wordEnd: false, pause: true });
+        const pause = own(PAUSE_MS, token);
+        if (pause)
+            queue.push({ name: 'rest', ms: pause, stressed: false, wordEnd: false, pause: true });
         else if (/\d/.test(token))
             push(DIGITS[Number(token)].split(' '));
         else
-            push((WORDS[token] ?? WORDS[token.replace(/'/g, '')])?.split(' ') ?? wordSounds(token));
+            push((own(WORDS, token) ?? own(WORDS, token.replace(/'/g, '')))?.split(' ') ?? wordSounds(token));
     }
     // a stressed vowel is held longer
     for (const s of queue)

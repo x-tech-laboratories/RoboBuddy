@@ -42,6 +42,8 @@
  *   starts with idle off. The positions of setPosition() are looks too.
  * - begin() also re-centres the eyes for the new screen size (the original only does that on the
  *   next setPosition() call).
+ * - update() schedules each frame an interval after the last one was due, not after it was drawn,
+ *   so a screen whose refresh rate does not divide the interval still gets the set frame rate.
  * - New: a mouth. It is always a single line under the eyes; only its length, how far below the
  *   eyes it sits, and how far each of its two corners bends up or down change. It follows the eyes,
  *   eases like every other value, takes its shape from the mood, and can shrink away completely
@@ -124,6 +126,11 @@ export class CanvasDisplay implements Display {
     private ctx: CanvasRenderingContext2D;
     private width = 128;
     private height = 64;
+    // The screen drawn into the canvas: its scale and offset, measured again only when the canvas changes size
+    private transform: [number, number, number] = [1, 0, 0];
+    private measuredRatio = 0;
+    private measured = false;
+    private observed = false;
     background = 'transparent';
     main = '#ffffff';
 
@@ -133,17 +140,24 @@ export class CanvasDisplay implements Display {
         this.ctx = ctx;
         if (options.background) this.background = options.background;
         if (options.main) this.main = options.main;
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(() => { this.measured = false; }).observe(canvas);
+            this.observed = true;
+        }
     }
 
     setSize(width: number, height: number) {
         this.width = width;
         this.height = height;
+        this.measured = false;
         this.resize();
     }
 
-    /** Matches the canvas's pixel size to how big it is on screen. Called on every frame, so CSS sizing just works. */
+    /** Matches the canvas's pixel size to how big it is on screen, so CSS sizing just works. The screen keeps its
+     *  shape, centred, when the canvas has another. */
     private resize() {
         const ratio = (typeof devicePixelRatio === 'number' ? devicePixelRatio : 1);
+        if (this.measured && this.observed && ratio === this.measuredRatio) return;
         const cssWidth = this.canvas.clientWidth || this.width;
         const cssHeight = this.canvas.clientHeight || this.height;
         const w = Math.max(1, Math.round(cssWidth * ratio));
@@ -152,17 +166,24 @@ export class CanvasDisplay implements Display {
             this.canvas.width = w;
             this.canvas.height = h;
         }
-        this.ctx.setTransform(w / this.width, 0, 0, h / this.height, 0, 0);
+        const scale = Math.min(w / this.width, h / this.height);
+        this.transform = [scale, (w - this.width * scale) / 2, (h - this.height * scale) / 2];
+        this.measuredRatio = ratio;
+        this.measured = true;
     }
 
     clearDisplay() {
         this.resize();
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, this.width, this.height);
+        // Clear the whole canvas, margins included, then draw in screen pixels
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (this.background !== 'transparent') {
             ctx.fillStyle = this.background;
-            ctx.fillRect(0, 0, this.width, this.height);
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
+        const [scale, x, y] = this.transform;
+        ctx.setTransform(scale, 0, 0, scale, x, y);
     }
 
     fillRoundRect(x: number, y: number, w: number, h: number, r: number, cutouts: Cutout[] = []) {
@@ -720,9 +741,11 @@ export class RoboEyes {
 
     update() {
         // Limit drawing updates to defined max framerate
-        if (millis() - this.fpsTimer >= this.frameInterval) {
+        const now = millis();
+        if (now - this.fpsTimer >= this.frameInterval) {
             this.drawEyes();
-            this.fpsTimer = millis();
+            // Port: the next frame is due an interval after this one was due, unless drawing has fallen far behind
+            this.fpsTimer = now - this.fpsTimer >= this.frameInterval * 2 ? now : this.fpsTimer + this.frameInterval;
         }
     }
 
@@ -795,7 +818,8 @@ export class RoboEyes {
     // than the usual half a frame, and can blink on the way (see FaceConfig.transition).
     setMood(mood: Mood | string, options: { for?: number } = {}) {
         const name = typeof mood === 'number' ? MOOD_NAMES[mood] : mood;
-        const next = name in this.moods ? name : 'default';
+        if (!entry(this.moods, name)) warnMissing('mood', name);
+        const next = entry(this.moods, name) ? name : 'default';
         const changed = next !== this.mood, eyesWereHeld = this.eyeLheld || this.eyeRheld;
         if (changed) this.transitionEnd = millis() + this.transitionMs;
         if (options.for && options.for > 0) {
@@ -844,8 +868,11 @@ export class RoboEyes {
 
     // Port: set the look by name (see looks): a place for the eyes to go, or wander
     setLook(name: string) {
-        const look = this.looks[name];
-        if (!look) return;
+        const look = entry(this.looks, name);
+        if (!look) {
+            warnMissing('look', name);
+            return;
+        }
         this.look = name;
         // Port: a path starts again from its first point
         this.pathing = !look.wander && !look.follow && !!look.path?.length;
@@ -882,16 +909,17 @@ export class RoboEyes {
 
     /** Port: the eye state in use, with the mood's changes to it. */
     currentEyes(): EyeState {
-        return eyesWith(this.eyeStates[this.eyeState] ?? OPEN_EYES, this.eyesOverride);
+        return eyesWith(entry(this.eyeStates, this.eyeState) ?? OPEN_EYES, this.eyesOverride);
     }
 
     /** Port: the mouth state in use, with the mood's changes to it. */
     currentMouth(): MouthState {
-        return { ...(this.mouthStates[this.mouthState] ?? { left: 0, right: 0 }), ...withoutNulls(this.mouthOverride) };
+        return { ...(entry(this.mouthStates, this.mouthState) ?? { left: 0, right: 0 }), ...withoutNulls(this.mouthOverride) };
     }
 
     // The eyelids follow the eye state every frame; closing and opening happen here
     private applyEyes(name: string, override?: Patch<EyeState>) {
+        if (!entry(this.eyeStates, name)) warnMissing('eye state', name);
         this.eyeState = name;
         this.eyesOverride = override;
         const closed = this.currentEyes().closed;
@@ -912,6 +940,7 @@ export class RoboEyes {
 
     // The mouth is set here, so setMouthWidth() and setMouthCorners() can still change it afterwards
     private applyMouth(name: string, override?: Partial<MouthState>) {
+        if (!entry(this.mouthStates, name)) warnMissing('mouth state', name);
         this.mouthState = name;
         this.mouthOverride = override;
         const shape = this.currentMouth();
@@ -1017,7 +1046,7 @@ export class RoboEyes {
     setViseme(name: string | null) {
         this.visemeQueue = [];
         this.visemeEnd = 0;
-        this.viseme = name !== null && this.visemes[name] ? name : null;
+        this.viseme = name !== null && entry(this.visemes, name) ? name : null;
     }
 
     // Port: say some text: its spelling is turned into mouth shapes (see speech.ts) and played. Returns how long it takes in ms.
@@ -1183,7 +1212,10 @@ export class RoboEyes {
         this.eyeRborderRadiusCurrent = int((this.eyeRborderRadiusCurrent + this.eyeRborderRadiusNext) / 2);
 
         // Port: a temporary mood ends, back to the one underneath
-        if (this.tempMoodEnd && millis() >= this.tempMoodEnd) this.setMood(this.baseMood);
+        if (this.tempMoodEnd && millis() >= this.tempMoodEnd) {
+            this.setMood(this.baseMood);
+            this.introQueue = []; // the mood underneath has already played its intro
+        }
         // Port: the mood sets how big the eyes are drawn, and how often they blink
         const mood = this.moods[this.mood] ?? {}, baseMood = this.moods.default ?? {}; // what a mood leaves out is the default mood's
         // (halfway each frame, but never in whole numbers: it is a multiple, so "pixel" precision rounds the sizes instead)
@@ -1207,13 +1239,13 @@ export class RoboEyes {
         const now = millis();
         if (this.visemeQueue.length && now >= this.visemeEnd) {
             const next = this.visemeQueue.shift()!;
-            this.viseme = typeof next.viseme === 'string' && !this.visemes[next.viseme] ? 'rest' : next.viseme;
+            this.viseme = typeof next.viseme === 'string' && !entry(this.visemes, next.viseme) ? 'rest' : next.viseme;
             this.visemeEnd = now + Math.max(0, next.ms);
         } else if (!this.visemeQueue.length && this.viseme && this.visemeEnd && now >= this.visemeEnd) {
             this.viseme = null; // the last one of the list is over
             this.visemeEnd = 0;
         }
-        const shape = typeof this.viseme === 'string' ? this.visemes[this.viseme] : this.viseme ?? undefined;
+        const shape = typeof this.viseme === 'string' ? entry(this.visemes, this.viseme) : this.viseme ?? undefined;
         const talking = this.mouthTalk || !!shape;
         this.mouthWidthCurrent = this.ease(this.mouthWidthCurrent, this.mouthWidthNext * (shape?.width ?? 1) * (1 - this.sighMouthNarrow * this.sighOpenAmount), moodSpeed); // port: a sigh shortens the mouth as it opens
         this.mouthGapCurrent = this.ease(this.mouthGapCurrent, this.mouthGapNext);
@@ -1694,6 +1726,16 @@ function lidsWith(base?: EyeLids, patch?: Patch<EyeLids> | null): EyeLids {
         if (Object.keys(lid).length) lids[which] = lid;
     }
     return lids;
+}
+
+/** record[name] if the name is the record's own, so a name like "constructor" never finds a built-in property. */
+function entry<T>(record: Record<string, T>, name: string): T | undefined {
+    return Object.prototype.hasOwnProperty.call(record, name) ? record[name] : undefined;
+}
+
+/** Tells the developer about a name that is not in the face's config, which the face otherwise skips quietly. */
+function warnMissing(kind: string, name: string) {
+    if (typeof console !== 'undefined') console.warn(`RoboEyes: no ${kind} called "${name}"`);
 }
 
 /** obj without the keys whose value is null or undefined, which mean "left out". */

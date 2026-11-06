@@ -64,6 +64,10 @@ export declare class CanvasDisplay implements Display {
     private ctx;
     private width;
     private height;
+    private transform;
+    private measuredRatio;
+    private measured;
+    private observed;
     background: string;
     main: string;
     constructor(canvas: HTMLCanvasElement, options?: {
@@ -71,7 +75,8 @@ export declare class CanvasDisplay implements Display {
         main?: string;
     });
     setSize(width: number, height: number): void;
-    /** Matches the canvas's pixel size to how big it is on screen. Called on every frame, so CSS sizing just works. */
+    /** Matches the canvas's pixel size to how big it is on screen, so CSS sizing just works. The screen keeps its
+     *  shape, centred, when the canvas has another. */
     private resize;
     clearDisplay(): void;
     fillRoundRect(x: number, y: number, w: number, h: number, r: number, cutouts?: Cutout[]): void;
