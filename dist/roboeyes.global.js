@@ -205,7 +205,7 @@ const defaultConfigJson = {
                 "curve": 0.1
             },
             "closed": false,
-            "group": "Happy"
+            "group": "Sad"
         },
         "confused": {
             "top": {
@@ -344,7 +344,8 @@ const defaultConfigJson = {
         "wry": {
             "left": 3,
             "right": -3,
-            "width": 20
+            "width": 20,
+            "group": "Fear"
         },
         "softSmile": {
             "left": 3,
@@ -593,7 +594,8 @@ const defaultConfigJson = {
                         "height": 0.5
                     }
                 }
-            }
+            },
+            "group": "Sad"
         },
         "disappointedNo": {
             "mouth": "flat",
@@ -604,7 +606,8 @@ const defaultConfigJson = {
                         "height": 0.5
                     }
                 }
-            }
+            },
+            "group": "Sad"
         },
         "asleep": {
             "eyes": "closed",
