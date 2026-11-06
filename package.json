@@ -12,7 +12,7 @@
   "types": "./dist/roboeyes.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build": "node build.mjs"
+    "dist": "node build.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0"

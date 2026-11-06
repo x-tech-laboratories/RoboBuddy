@@ -1,5 +1,5 @@
 // Renders every mood to screenshots/<mood>.png in headless Firefox: serves scripts/screenshots.html, which posts
-// each canvas back. Needs `npm run build` first and firefox on PATH. Usage: node scripts/screenshots.mjs
+// each canvas back. Needs `npm run dist` first and firefox on PATH. Usage: node scripts/screenshots.mjs
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';

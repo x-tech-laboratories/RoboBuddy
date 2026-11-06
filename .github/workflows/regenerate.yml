@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm run build
+      - run: npm run dist
       # Screenshots only change when the library does, and they are not byte-for-byte repeatable.
       - name: Regenerate screenshots
         if: ${{ github.event.before != '0000000000000000000000000000000000000000' }}

@@ -234,5 +234,9 @@ change a setting. Your work is kept in the browser between visits.
 
 ## Build
 
-`node build.mjs` (needs `tsc`) writes `dist/roboeyes.js`, `dist/config.js`, their `.d.ts` files and
+`npm run dist` (needs `tsc`) writes `dist/roboeyes.js`, `dist/config.js`, their `.d.ts` files and
 `dist/roboeyes.global.js`.
+
+`dist/` is committed, so installing straight from GitHub (`npm install github:x-tech-laboratories/RoboEyes`) needs
+no build. The script is called `dist`, not `build`, because npm installs a git dependency with a `build` script in
+full to prepare it, which also breaks offline installs such as Nix's.
