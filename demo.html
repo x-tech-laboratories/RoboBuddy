@@ -78,9 +78,6 @@
                 <legend>Moves</legend>
                 <button data-do="blink">Blink</button>
                 <button data-do="wink">Wink</button>
-                <button data-do="anim_laugh">Laugh</button>
-                <button data-do="close">Close</button>
-                <button data-do="open">Open</button>
             </fieldset>
         </div>
 
@@ -100,6 +97,7 @@
             <button data-toggle="sweat">Sweat</button>
             <button data-toggle="shake">Shake</button>
             <button data-toggle="talk">Talk</button>
+            <button data-toggle="laugh">Laugh</button>
         </fieldset>
 
         <fieldset>
@@ -153,6 +151,7 @@
             <button data-default="sweat">Sweat</button>
             <button data-default="shake">Shake</button>
             <button data-default="talk">Talk</button>
+            <button data-default="laugh">Laugh</button>
             <div class="label left">What a toggle is when the mood doesn't set it.</div>
         </fieldset>
 
@@ -282,8 +281,8 @@
         //// Mood, moves and face states ////
 
         // Each toggle, the face's field that holds it, and its setter
-        const toggleFields = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk' };
-        const toggleSetters = { autoblink: 'setAutoblinker', curious: 'setCuriosity', sweat: 'setSweat', shake: 'setShake', talk: 'setTalk' };
+        const toggleFields = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh' };
+        const toggleSetters = { autoblink: 'setAutoblinker', curious: 'setCuriosity', sweat: 'setSweat', shake: 'setShake', talk: 'setTalk', laugh: 'setLaugh' };
 
         document.getElementById('add-mood').onclick = () => {
             const input = document.getElementById('new-mood');
@@ -318,9 +317,6 @@
         const actions = {
             blink: (eyes) => eyes.blink(),
             wink: (eyes) => eyes.blink(false, true),
-            anim_laugh: (eyes) => eyes.anim_laugh(),
-            close: (eyes) => eyes.close(),
-            open: (eyes) => eyes.open(),
         };
         const speakText = document.getElementById('speak-text');
         const speak = () => face.speak(speakText.value, { speed: Number(document.getElementById('speak-speed').value) });
@@ -356,7 +352,7 @@
             ['eyes', 'Eyes', () => Object.keys(face.eyeStates), 'open'],
             ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'softSmile'],
             ['look', 'Look', () => Object.keys(face.looks), 'keep'],
-            ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null], ['talk', 'Talk', null],
+            ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null], ['talk', 'Talk', null], ['laugh', 'Laugh', null],
         ];
         const recipeSelects = recipe.map(([key, text, choices, missing]) => {
             const label = document.createElement('label');
@@ -408,13 +404,10 @@
             'look-sliders': [
                 ['@look.wander', 'Wander (look somewhere random every so often)', 'check'],
                 ['@look.follow', 'Follow (look at the mouse)', 'check'],
-                ['@look.dart', 'Dart (glance from side to side)', 'check'],
                 ['@look.shakeHead', 'Shake head', 'check'],
                 ['@look.nod', 'Nod', 'check'],
                 ['@look.x', 'Across (0 left, 1 right)', 0, 1, 0.05],
                 ['@look.y', 'Down (0 top, 1 bottom)', 0, 1, 0.05],
-                ['@look.dart.reach', 'Dart reach (to each side)', 0, 1, 0.05],
-                ['@look.dart.holdMs', 'Dart hold (ms)', 100, 3000, 50],
             ],
             'move-sliders': [
                 ['Auto blink'],
@@ -424,9 +417,11 @@
                 ['wander.interval', 'Interval (s)', 0, 10, 1],
                 ['wander.variation', 'Random extra (s)', 0, 10, 1],
                 ['Laugh'],
-                ['laugh.amplitude', 'Eye swing', 0, 20, 1],
-                ['laugh.mouthAmplitude', 'Mouth bounce', 0, 10, 1],
-                ['laugh.durationMs', 'Duration (ms)', 100, 3000, 50],
+                ['laugh.frequency', 'Bounces per second', 1, 12, 0.5],
+                ['laugh.amplitude', 'Eye lift (px)', 0, 12, 1],
+                ['laugh.mouthAmplitude', 'Mouth lift (px)', 0, 10, 1],
+                ['laugh.squint', 'Squint', 0, 0.6, 0.05],
+                ['laugh.mouthOpen', 'Mouth opening (px)', 0, 14, 1],
                 ['Shake head'],
                 ['shakeHead.amplitude', 'Swing', 0, 40, 1],
                 ['shakeHead.speed', 'Speed', 0.05, 0.8, 0.05],
@@ -585,11 +580,9 @@
             // Sliders that would do nothing right now
             const disable = (path, off) => inputs.find((i) => i.path === path).input.disabled = off;
             disable('@mouth.width', !config.mouth.moodWidth && !face.mouthStates[face.mouthState]?.ownWidth);
-            const wandering = !!face.looks[face.look]?.wander, darting = !!face.looks[face.look]?.dart, following = !!face.looks[face.look]?.follow;
+            const wandering = !!face.looks[face.look]?.wander, following = !!face.looks[face.look]?.follow;
             disable('@look.x', wandering || following);
             disable('@look.y', wandering || following);
-            disable('@look.dart.reach', !darting);
-            disable('@look.dart.holdMs', !darting);
 
             document.querySelectorAll('[data-toggle]').forEach((b) => b.classList.toggle('on', face[toggleFields[b.dataset.toggle]]));
             document.querySelectorAll('[data-default]').forEach((b) => b.classList.toggle('on', face.toggleDefaults[b.dataset.default]));

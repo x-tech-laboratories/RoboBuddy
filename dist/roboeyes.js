@@ -46,8 +46,8 @@
  *   eyes it sits, and how far each of its two corners bends up or down change. It follows the eyes,
  *   eases like every other value, takes its shape from the mood, and can shrink away completely
  *   (setMouthWidth(0)).
- * - anim_laugh() swings the eyes with the same halfway-per-frame easing as a blink, instead of
- *   jumping every frame, and the mouth bounces on its own. The original's anim_confused() is gone:
+ * - Laughing is a toggle (setLaugh(); anim_laugh() turns it on): the eyes lift and squint and the mouth opens
+ *   and lifts with each bounce, until it is turned off. The original's anim_confused() is gone:
  *   shaking the head, and its new sibling nodding, are looks (see shakeHead and nod in a look),
  *   which swing the eyes and mouth together until another look is set.
  * ---------------------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'happ
 // Port: the position constants name these entries of FaceConfig.looks
 const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
-const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk' };
+const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
 export class CanvasDisplay {
     constructor(canvas, options = {}) {
@@ -354,10 +354,6 @@ export class RoboEyes {
         this.followFullY = defaultConfig.follow.fullY; // and down
         this.followX = 0.5; // where the eyes look while following, as fractions of how far they can move
         this.followY = 0.5;
-        // Port: a dart look - eyes glancing from side to side
-        this.darting = false;
-        this.dartSide = 1; // the side of the last glance: -1 left, 1 right (so the first glance is to the left)
-        this.dartTimer = 0; // when the next glance is due
         // Animation - shake head (a look, replacing the original's "confused"): eyes and mouth shaking left and right
         this.shakeHead = false;
         this.shakeHeadAmplitude = defaultConfig.shakeHead.amplitude; // port: how far the face swings to each side
@@ -386,13 +382,19 @@ export class RoboEyes {
         this.nod = false;
         this.nodAmplitude = defaultConfig.nod.amplitude; // how far the face swings down and up
         this.nodSpeed = defaultConfig.nod.speed;
-        // Animation - eyes laughing: eyes shaking up and down
-        this.laugh = false;
-        this.laughAnimationTimer = 0;
-        this.laughAnimationDuration = defaultConfig.laugh.durationMs;
-        this.laughToggle = true;
-        this.laughAmplitude = defaultConfig.laugh.amplitude; // port: how far the eyes swing up and down
-        this.laughMouthAmplitude = defaultConfig.laugh.mouthAmplitude; // port: how far the mouth bounces, on its own, while laughing
+        // Port: the laugh toggle - the face bounces with each "ha": the eyes lift and squint, the mouth opens and bounces with them
+        this.laugh = defaultConfig.toggles.laugh;
+        this.laughLevel = 0; // 0 to 1: how far into the laugh the face is, easing in and out as the toggle changes
+        this.laughPhase = 0; // where the bounce is, in radians
+        this.laughLast = 0; // when the laugh was last stepped, in milliseconds
+        this.laughFrequency = defaultConfig.laugh.frequency; // bounces ("ha"s) per second
+        this.laughAmplitude = defaultConfig.laugh.amplitude; // how far the eyes lift, in pixels
+        this.laughMouthAmplitude = defaultConfig.laugh.mouthAmplitude; // how far the mouth lifts, in pixels
+        this.laughSquint = defaultConfig.laugh.squint; // how far the bottom lids come up (the happy eyes' fraction of the eye's height)
+        this.laughMouthOpen = defaultConfig.laugh.mouthOpen; // how far the mouth opens at the top of a bounce, in pixels
+        this.laughY = 0; // the bounce now, added to the eyes
+        this.laughMouthY = 0; // and to the mouth
+        this.laughOpenAmount = 0; // 0 to 1: how open the mouth is for the laugh right now
         // Port: the laugh, shake and nod swings, drawn on top of the eye and mouth positions
         this.shakeX = 0;
         this.shakeXNext = 0;
@@ -451,7 +453,7 @@ export class RoboEyes {
             wander: { interval: this.idleInterval, variation: this.idleIntervalVariation },
             curious: { growth: this.curiousGrowth, edge: this.curiousEdge },
             follow: { fullX: this.followFullX, fullY: this.followFullY },
-            laugh: { amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, durationMs: this.laughAnimationDuration },
+            laugh: { frequency: this.laughFrequency, amplitude: this.laughAmplitude, mouthAmplitude: this.laughMouthAmplitude, squint: this.laughSquint, mouthOpen: this.laughMouthOpen },
             shakeHead: { amplitude: this.shakeHeadAmplitude, speed: this.shakeHeadSpeed },
             talk: { syllableMs: this.talkSyllableMs, variationMs: this.talkVariationMs, pauseChance: this.talkPauseChance, open: this.talkOpen, lipLift: this.talkLipLift, cornerSway: this.talkCornerSway, visemes: structuredClone(this.visemes) },
             nod: { amplitude: this.nodAmplitude, speed: this.nodSpeed },
@@ -504,7 +506,9 @@ export class RoboEyes {
         this.followFullY = Math.max(0.05, Math.min(1, c.follow.fullY));
         this.laughAmplitude = c.laugh.amplitude;
         this.laughMouthAmplitude = c.laugh.mouthAmplitude;
-        this.laughAnimationDuration = c.laugh.durationMs;
+        this.laughFrequency = c.laugh.frequency;
+        this.laughSquint = c.laugh.squint;
+        this.laughMouthOpen = c.laugh.mouthOpen;
         this.shakeHeadAmplitude = c.shakeHead.amplitude;
         this.shakeHeadSpeed = Math.max(0.05, Math.min(0.8, c.shakeHead.speed));
         this.talkSyllableMs = Math.max(20, c.talk.syllableMs);
@@ -547,16 +551,13 @@ export class RoboEyes {
             if (look.group)
                 this.looks[name].group = look.group;
             if (look.wander)
-                this.looks[name].wander = true;
+                this.looks[name].wander = typeof look.wander === 'object' ? withoutNulls(look.wander) : true;
             if (look.follow)
                 this.looks[name].follow = true;
             if (look.shakeHead)
                 this.looks[name].shakeHead = true;
             if (look.nod)
                 this.looks[name].nod = true;
-            // dart: true (as the demo's checkbox sends) gets the default reach and hold
-            if (look.dart)
-                this.looks[name].dart = { reach: 0.5, holdMs: 600, ...(typeof look.dart === 'object' ? withoutNulls(look.dart) : {}) };
         }
         this.moods = {};
         for (const [name, mood] of Object.entries(c.moods))
@@ -688,25 +689,16 @@ export class RoboEyes {
             if (!this.idle)
                 this.idleAnimationTimer = 0; // move on straight away
             this.idle = true;
-            this.darting = false;
             this.following = false;
             return;
         }
         this.idle = false;
         this.following = !!look.follow;
         if (look.follow) {
-            this.darting = false;
             this.followX = look.x;
             this.followY = look.y;
             return; // drawEyes() places the eyes
         }
-        if (look.dart) {
-            if (!this.darting)
-                this.dartTimer = 0; // first glance straight away; drawEyes() places the eyes
-            this.darting = true;
-            return;
-        }
-        this.darting = false;
         const fraction = (v) => Math.max(0, Math.min(1, v));
         this.eyeLxNext = this.int(this.getScreenConstraint_X() * fraction(look.x));
         this.eyeLyNext = this.eyeYAt(look.y);
@@ -923,9 +915,13 @@ export class RoboEyes {
     //*********************************************************************************************
     //  MACRO ANIMATION METHODS
     //*********************************************************************************************
-    // Play laugh animation - one shot animation of eyes shaking up and down
+    // Port: the laugh toggle - laughs until turned off. The next mood sets it again.
+    setLaugh(laughBit) {
+        this.laugh = laughBit;
+    }
+    // The original's one-shot laugh. Port: laughing is a toggle now, so this turns it on.
     anim_laugh() {
-        this.laugh = true;
+        this.setLaugh(true);
     }
     //*********************************************************************************************
     //  PRE-CALCULATIONS AND ACTUAL DRAWINGS
@@ -1047,21 +1043,25 @@ export class RoboEyes {
         this.mouthOpenCurrent = this.ease(this.mouthOpenCurrent, open * talk);
         this.mouthLeftOpenCurrent = this.ease(this.mouthLeftOpenCurrent, openL * talk * cornerL);
         this.mouthRightOpenCurrent = this.ease(this.mouthRightOpenCurrent, openR * talk * cornerR);
+        // Port: a laugh opens the mouth at least as far as the laugh needs, and lifts its corners, over whatever it was doing
+        if (this.laughLevel > 0) {
+            const laughShape = this.mouthStates.laugh, wide = this.laughMouthOpen * this.laughOpenAmount;
+            this.mouthOpenCurrent = Math.max(this.mouthOpenCurrent, this.int(wide));
+            this.mouthLeftOpenCurrent = Math.max(this.mouthLeftOpenCurrent, this.int(wide * 0.6));
+            this.mouthRightOpenCurrent = Math.max(this.mouthRightOpenCurrent, this.int(wide * 0.6));
+            this.mouthLeftCurrent = Math.max(this.mouthLeftCurrent, this.int((laughShape?.left ?? 0) * this.laughLevel));
+            this.mouthRightCurrent = Math.max(this.mouthRightCurrent, this.int((laughShape?.right ?? 0) * this.laughLevel));
+        }
         //// APPLYING MACRO ANIMATIONS ////
         if (this.autoblinker && !this.eyesClosed && !still) {
             if (millis() >= this.blinktimer) {
                 this.blink(!this.eyeLheld, !this.eyeRheld); // port: a winking eye stays closed
                 const interval = mood.blink?.interval ?? this.blinkInterval, variation = mood.blink?.variation ?? this.blinkIntervalVariation; // port: the mood's timing, if it has one
-                this.blinktimer = millis() + (interval * 1000) + (random(variation) * 1000); // calculate next time for blinking
+                this.blinktimer = millis() + (interval * 1000) + (Math.random() * variation * 1000); // calculate next time for blinking
             }
         }
-        // Laughing - eyes shaking up and down for the duration defined by laughAnimationDuration (default = 500ms)
-        // Port: instead of the original's per-frame vertical flicker, the eyes swing at the pace of a blink,
-        // and the mouth bounces the other way on its own.
         // Port: a look that shakes the head or nods starts the swing, which keeps going until the look changes
         const shaking = !still && !!this.looks[this.look]?.shakeHead, nodding = !still && !!this.looks[this.look]?.nod;
-        if (still && this.laugh && this.laughToggle)
-            this.laugh = false; // a laugh not yet started is dropped
         if (shaking !== this.shakeHead) {
             this.shakeHead = shaking;
             this.shakeXNext = shaking ? -this.shakeHeadAmplitude : 0;
@@ -1071,57 +1071,43 @@ export class RoboEyes {
             this.shakeYNext = nodding ? this.nodAmplitude : 0;
             this.mouthShakeYNext = this.shakeYNext;
         }
-        if (this.laugh) {
-            if (this.laughToggle) {
-                this.shakeYNext = -this.laughAmplitude;
-                this.mouthShakeYNext = this.laughMouthAmplitude;
-                this.laughAnimationTimer = millis();
-                this.laughToggle = false;
-            }
-            else if (millis() >= this.laughAnimationTimer + this.laughAnimationDuration) {
-                this.shakeYNext = 0;
-                this.mouthShakeYNext = 0;
-                this.laughToggle = true;
-                this.laugh = false;
-            }
-        }
+        // Laughing - the toggle eases the laugh in and out; each bounce lifts the eyes and mouth and opens the mouth for a
+        // "ha". Port: it keeps its time from the clock, so the pace doesn't depend on the frame rate. With reduced motion
+        // the face keeps the laughing pose, squinting with the mouth open, and doesn't bounce.
+        const laughNow = millis(), dt = this.laughLast ? Math.min(100, laughNow - this.laughLast) : 0;
+        this.laughLast = laughNow;
+        this.laughLevel = Math.max(0, Math.min(1, this.laughLevel + (this.laugh ? dt / 150 : -dt / 300)));
+        if (this.laughLevel === 0)
+            this.laughPhase = 0; // the next laugh starts from the bottom of a bounce
+        else if (!still)
+            this.laughPhase += 2 * Math.PI * this.laughFrequency * dt / 1000;
+        const lift = still ? 0 : 0.5 - 0.5 * Math.cos(this.laughPhase); // 0 to 1: 0 at rest, 1 at the top of a bounce
+        this.laughY = this.int(-lift * this.laughAmplitude * this.laughLevel);
+        this.laughMouthY = this.int(-lift * this.laughMouthAmplitude * this.laughLevel);
+        this.laughOpenAmount = this.laughLevel * (0.35 + 0.65 * (still ? 1 : lift)); // never quite shut, so it reads as laughing
         // Port: each swing eases like a blink, and turns back once it arrives
         this.shakeX = this.ease(this.shakeX, this.shakeXNext, this.shakeHeadSpeed);
         // Port: turning back takes the amplitude as it is now, so changing it applies to a swing already going
         if (this.shakeHead && this.shakeX === this.shakeXNext)
             this.shakeXNext = this.shakeXNext > 0 ? -this.shakeHeadAmplitude : this.shakeHeadAmplitude;
-        const swingSpeed = this.nod ? this.nodSpeed : this.blinkSpeed; // a laugh swings at the pace of a blink
-        this.shakeY = this.ease(this.shakeY, this.shakeYNext, swingSpeed);
-        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, swingSpeed);
-        // The mouth turns back with the eyes, so it moves at the same pace: with them when nodding, and the other
-        // way, by its own amount, when laughing
-        if ((this.laugh || this.nod) && this.shakeY === this.shakeYNext) {
-            const up = this.shakeYNext > 0, amplitude = this.laugh ? this.laughAmplitude : this.nodAmplitude;
-            this.shakeYNext = up ? -amplitude : amplitude;
-            this.mouthShakeYNext = this.laugh ? (up ? this.laughMouthAmplitude : -this.laughMouthAmplitude) : this.shakeYNext;
+        this.shakeY = this.ease(this.shakeY, this.shakeYNext, this.nodSpeed);
+        this.mouthShakeY = this.ease(this.mouthShakeY, this.mouthShakeYNext, this.nodSpeed);
+        // The mouth turns back with the eyes, so it moves at the same pace
+        if (this.nod && this.shakeY === this.shakeYNext) {
+            this.shakeYNext = this.shakeYNext > 0 ? -this.nodAmplitude : this.nodAmplitude;
+            this.mouthShakeYNext = this.shakeYNext;
         }
         // Idle - eyes moving to random positions on screen
         if (this.idle && !this.eyesClosed && !still) {
             if (millis() >= this.idleAnimationTimer) {
                 this.eyeLxNext = random(this.getScreenConstraint_X());
                 this.eyeLyNext = this.eyeYAt(random(1000) / 1000);
-                this.idleAnimationTimer = millis() + (this.idleInterval * 1000) + (random(this.idleIntervalVariation) * 1000); // calculate next time for eyes repositioning
+                // Port: a look can set its own pace (looking around is a quick wander)
+                const wander = this.looks[this.look]?.wander;
+                const pace = typeof wander === 'object' ? wander : {};
+                const interval = pace.interval ?? this.idleInterval, variation = pace.variation ?? this.idleIntervalVariation;
+                this.idleAnimationTimer = millis() + (interval * 1000) + (random(variation) * 1000); // calculate next time for eyes repositioning
             }
-        }
-        // Port: a dart look glances to the other side once each glance has been held for its time
-        const dartLook = this.darting ? this.looks[this.look] : undefined;
-        const fraction = (v) => Math.max(0, Math.min(1, v));
-        if (dartLook?.dart && still) {
-            // Reduced motion: look at the dart's middle instead, and glance straight away once motion is back
-            this.eyeLxNext = this.int(this.getScreenConstraint_X() * fraction(dartLook.x));
-            this.eyeLyNext = this.eyeYAt(dartLook.y);
-            this.dartTimer = 0;
-        }
-        else if (dartLook?.dart && !this.eyesClosed && millis() >= this.dartTimer) {
-            this.dartSide = -this.dartSide;
-            this.eyeLxNext = this.int(this.getScreenConstraint_X() * fraction(dartLook.x + this.dartSide * dartLook.dart.reach));
-            this.eyeLyNext = this.eyeYAt(dartLook.y);
-            this.dartTimer = millis() + dartLook.dart.holdMs;
         }
         // Port: a follow look keeps the eyes on the point lookAt() gave (the middle, in reduced motion)
         if (this.following) {
@@ -1171,7 +1157,7 @@ export class RoboEyes {
             const h = (side === 'right' && !this.cyclops ? this.eyeRheightCurrent : this.eyeLheightCurrent) * this.eyeScale;
             this.lids[side] = {
                 top: this.easeLid(this.lids[side].top, { ...eyes.top, ...own?.top }, h),
-                bottom: this.easeLid(this.lids[side].bottom, { ...eyes.bottom, ...own?.bottom }, h),
+                bottom: this.easeLid(this.lids[side].bottom, this.laughed({ ...eyes.bottom, ...own?.bottom }), h),
             };
         }
         // The original draws each eye, then paints the eyelids over it in the background colour.
@@ -1182,8 +1168,8 @@ export class RoboEyes {
         // Port: and the mood's scale grows each eye from its centre
         const s = this.eyeScale;
         const grown = (x, y, w, h) => [int(x - w * (s - 1) / 2), int(y - h * (s - 1) / 2), int(w * s), int(h * s)];
-        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
-        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
+        const [lx, ly, lw, lh] = grown(this.eyeLx + this.shakeX, this.eyeLy + this.shakeY + this.laughY + (tallest - this.eyeLheightDefault), this.eyeLwidthCurrent, this.eyeLheightCurrent);
+        const [rx, ry, rw, rh] = grown(this.eyeRx + this.shakeX, this.eyeRy + this.shakeY + this.laughY + (tallest - this.eyeRheightDefault), this.eyeRwidthCurrent, this.eyeRheightCurrent);
         const leftCuts = [];
         const rightCuts = [];
         if (!this.cyclops) {
@@ -1275,6 +1261,13 @@ export class RoboEyes {
     //  MOUTH (port addition)
     //*********************************************************************************************
     /** A lid in pixels for an eye h tall, eased like the original's eyelids. */
+    // Port: a laugh squints the eyes, raising the bottom lids to the happy eyes' arch
+    laughed(lid) {
+        const level = this.laughLevel;
+        if (level <= 0 || this.laughSquint <= 0)
+            return lid;
+        return { ...lid, height: Math.max(lid.height, this.laughSquint * level), curve: Math.max(lid.curve, 0.2 * level) };
+    }
     easeLid(current, shape, h) {
         const int = (v) => this.int(v);
         const angle = Math.max(-1, Math.min(1, shape.angle));
@@ -1344,8 +1337,8 @@ export class RoboEyes {
     }
     /**
      * The mouth is one line, centred under the eyes, that moves with them (blinks leave it alone,
-     * since the eyes close around their centre; it follows a head shake and a nod, and bounces on its
-     * own when laughing). Its middle
+     * since the eyes close around their centre; it follows a head shake and a nod, and lifts and opens
+     * with each bounce when laughing). Its middle
      * stays straight; only the two corners bend, each by its own amount, over the outer quarter of
      * the line on each side.
      */
@@ -1362,7 +1355,7 @@ export class RoboEyes {
         const cx = (leftEdge + rightEdge) / 2 + this.shakeX;
         const eyeCentre = this.eyeLy + this.eyeLheightCurrent / 2;
         const tallest = Math.max(this.eyeLheightDefault, this.cyclops ? 0 : this.eyeRheightDefault); // the eyes' shared bottom edge
-        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY;
+        const y = eyeCentre + this.eyeLheightDefault / 2 + (tallest - this.eyeLheightDefault) + this.mouthGapCurrent + this.mouthThickness / 2 + this.mouthShakeY + this.laughMouthY;
         const x0 = cx - width / 2, x1 = cx + width / 2;
         const curl = width * this.mouthCurl; // how much of each end bends
         const clamp = (lift) => Math.max(-curl, Math.min(curl, lift)); // corners never bend further than they are long

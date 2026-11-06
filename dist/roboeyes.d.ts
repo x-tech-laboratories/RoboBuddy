@@ -203,9 +203,6 @@ export declare class RoboEyes {
     followFullY: number;
     followX: number;
     followY: number;
-    darting: boolean;
-    dartSide: number;
-    dartTimer: number;
     shakeHead: boolean;
     shakeHeadAmplitude: number;
     shakeHeadSpeed: number;
@@ -233,11 +230,17 @@ export declare class RoboEyes {
     nodAmplitude: number;
     nodSpeed: number;
     laugh: boolean;
-    laughAnimationTimer: number;
-    laughAnimationDuration: number;
-    laughToggle: boolean;
+    laughLevel: number;
+    laughPhase: number;
+    laughLast: number;
+    laughFrequency: number;
     laughAmplitude: number;
     laughMouthAmplitude: number;
+    laughSquint: number;
+    laughMouthOpen: number;
+    laughY: number;
+    laughMouthY: number;
+    laughOpenAmount: number;
     shakeX: number;
     shakeXNext: number;
     shakeY: number;
@@ -325,12 +328,14 @@ export declare class RoboEyes {
     mouthReach(): number;
     motionReduced(): boolean;
     private motionQuery?;
-    close(left?: boolean, right?: boolean): void;
-    open(left?: boolean, right?: boolean): void;
+    private close;
+    private open;
     blink(left?: boolean, right?: boolean): void;
+    setLaugh(laughBit: boolean): void;
     anim_laugh(): void;
     drawEyes(): void;
     /** A lid in pixels for an eye h tall, eased like the original's eyelids. */
+    private laughed;
     private easeLid;
     /**
      * The cut-outs for an eye's top and bottom lids, between its inner and outer edge (x positions,
@@ -347,8 +352,8 @@ export declare class RoboEyes {
     private ease;
     /**
      * The mouth is one line, centred under the eyes, that moves with them (blinks leave it alone,
-     * since the eyes close around their centre; it follows a head shake and a nod, and bounces on its
-     * own when laughing). Its middle
+     * since the eyes close around their centre; it follows a head shake and a nod, and lifts and opens
+     * with each bounce when laughing). Its middle
      * stays straight; only the two corners bend, each by its own amount, over the outer quarter of
      * the line on each side.
      */

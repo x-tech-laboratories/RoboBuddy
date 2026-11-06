@@ -41,9 +41,11 @@
         "fullY": 0.4
     },
     "laugh": {
-        "amplitude": 5,
+        "frequency": 6,
+        "amplitude": 3,
         "mouthAmplitude": 2,
-        "durationMs": 500
+        "squint": 0.35,
+        "mouthOpen": 8
     },
     "shakeHead": {
         "amplitude": 20,
@@ -93,7 +95,8 @@
         "curious": false,
         "sweat": false,
         "shake": false,
-        "talk": false
+        "talk": false,
+        "laugh": false
     },
     "eyeStates": {
         "open": {
@@ -416,18 +419,12 @@
             "wander": true,
             "group": "Moving"
         },
-        "follow": {
+        "lookAround": {
             "x": 0.5,
             "y": 0.5,
-            "follow": true,
-            "group": "Moving"
-        },
-        "dart": {
-            "x": 0.5,
-            "y": 0.5,
-            "dart": {
-                "reach": 0.5,
-                "holdMs": 600
+            "wander": {
+                "interval": 0.3,
+                "variation": 0.6
             },
             "group": "Moving"
         },
@@ -466,6 +463,12 @@
             "y": 0.5,
             "nod": true,
             "group": "Nodding"
+        },
+        "follow": {
+            "x": 0.5,
+            "y": 0.5,
+            "follow": true,
+            "group": "Moving"
         }
     },
     "moods": {
@@ -558,8 +561,8 @@
         },
         "scared": {
             "eyes": "sad",
-            "mouth": "openGasp",
-            "look": "dart",
+            "mouth": "flatBottomFrown",
+            "look": "lookAround",
             "sweat": true,
             "shake": true,
             "group": "Upset"

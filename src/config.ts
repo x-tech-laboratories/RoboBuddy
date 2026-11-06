@@ -22,7 +22,7 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
 /*
  * A face is built in layers:
  * - face states, the building blocks: an eye state (the eyelids, or one or both eyes closed), a mouth state (how the corners
- *   bend), a look (where the eyes point, or wander, or shake the head or nod) and five toggles (auto blink, curious, sweat, shake and talk).
+ *   bend), a look (where the eyes point, or wander, or shake the head or nod) and six toggles (auto blink, curious, sweat, shake, talk and laugh).
  *   Each can be set on its own.
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
@@ -91,11 +91,9 @@ export interface MouthState {
 export interface LookState {
     x: number;
     y: number;
-    /** Instead of holding still, look somewhere random every so often (the original's idle mode). */
-    wander?: boolean;
-    /** Instead of holding still, glance from side to side: to x - reach, then x + reach, holding each glance
-     *  for holdMs. Slow for suspicious, quick for shifty. */
-    dart?: { reach: number; holdMs: number };
+    /** Instead of holding still, look somewhere random every so often (the original's idle mode). An interval and
+     *  variation (in seconds) set this look's own pace, instead of the wander settings: short ones look around. */
+    wander?: boolean | { interval?: number; variation?: number };
     /** Instead of holding still, follow the point set with lookAt() (the demo sets it to the mouse). x and y are
      *  where the eyes rest until lookAt() is first called. */
     follow?: boolean;
@@ -118,6 +116,8 @@ export interface Toggles {
     shake: boolean;
     /** Whatever the mouth state, the mouth keeps opening and closing at random, like syllables (at the talk settings). */
     talk: boolean;
+    /** The face bounces with each "ha": the eyes lift and squint, and the mouth opens and bounces with them (at the laugh settings). */
+    laugh: boolean;
 }
 
 /** One mouth shape of speech. Every amount is relative, so a viseme fits any mouth state. */
@@ -140,7 +140,7 @@ export interface Modes {
     mouth: boolean;
     /** Fractional maths for softer motion, instead of the original's whole pixels. */
     smooth: boolean;
-    /** Keep each pose but stop what keeps moving: auto blink, wander, dart, shake, sweat, laugh, shaking the head,
+    /** Keep each pose but stop what keeps moving: auto blink, wander, shake, sweat, laugh, shaking the head,
      *  nodding and the talk toggle. 'auto' follows the system's prefers-reduced-motion setting. */
     reducedMotion: boolean | 'auto';
 }
@@ -191,8 +191,7 @@ export interface FaceConfig {
         /** On: the mouth state's width (if it has one) sets the length. Off (the default): it stays at width. */
         moodWidth: boolean;
     };
-    /** speed: how much of the remaining way a blinking eye goes each frame (0.5, as the original). The laugh
-     *  swings move at the same speed; shake head and nod have their own. */
+    /** speed: how much of the remaining way a blinking eye goes each frame (0.5, as the original). Shake head and nod have their own. */
     blink: { interval: number; variation: number; speed: number };
     /** How often a wandering look moves on. */
     wander: { interval: number; variation: number };
@@ -202,7 +201,10 @@ export interface FaceConfig {
      *  across and down, for the eyes to turn as far as they can (0 to 1). The demo measures it from the face to the
      *  window's edge. */
     follow: { fullX: number; fullY: number };
-    laugh: { amplitude: number; mouthAmplitude: number; durationMs: number };
+    /** The laugh toggle: frequency is how many bounces ("ha"s) a second, amplitude and mouthAmplitude how far the eyes and
+     *  the mouth lift each bounce (pixels), squint how far the bottom lids come up (a fraction of the eye's height) and
+     *  mouthOpen how far the mouth opens at the top of a bounce (pixels). */
+    laugh: { frequency: number; amplitude: number; mouthAmplitude: number; squint: number; mouthOpen: number };
     shakeHead: { amplitude: number; speed: number };
     /** A talking mouth: it picks a new opening every syllableMs plus up to variationMs more; pauseChance (0 to 1) is how
      *  often that opening is shut, like a gap between words. open is how far a mouth state with no
