@@ -27,7 +27,7 @@ import defaultConfigJson from './defaultConfig.json' with { type: 'json' };
  * - moods: named combinations of face states, with tweaks to the eyelids and mouth for that mood only.
  * - face settings: the eyes' and mouth's size and place, timings, and the modes, which no mood changes.
  *
- * Moods and face states can be filed in folders with group: 'Upset/Angry'. That only organises them (the demo shows
+ * Moods and face states can be filed in folders with group: 'Anger/Furious'. That only organises them (the demo shows
  * the folders); every name must still be unique within its kind.
  */
 
@@ -56,7 +56,7 @@ export interface EyeState {
     /** Changes for the left or right eye only (as seen on screen). */
     left?: EyeLids;
     right?: EyeLids;
-    /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
+    /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
     /** true: both eyes stay closed, and auto blink and wander wait. 'left' or 'right' (as seen on screen): that eye
      *  stays closed, a wink, and auto blink blinks only the other. */
@@ -83,7 +83,7 @@ export interface MouthState {
     /** Mirror the corners when the eyes look left, so a lopsided mouth (smirk) curls up on the side away from where
      *  they look. Looking right or ahead leaves it as set. */
     followLook?: boolean;
-    /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
+    /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
 }
 
@@ -101,7 +101,7 @@ export interface LookState {
     shakeHead?: boolean;
     /** Keep nodding while looking here (at the nod settings), until another look is set. */
     nod?: boolean;
-    /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
+    /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
 }
 
@@ -146,8 +146,9 @@ export interface Modes {
 }
 
 /**
- * A mood: face states by name, and toggles. An eye or mouth state it leaves out is "open" or "softSmile"; a toggle
- * it leaves out is its default from FaceConfig.toggles; a look it leaves out stays where it is.
+ * A mood: face states by name, and toggles. Whatever it leaves out (a state, look, toggle, scale or blink timing) is the
+ * "default" mood's; and what that leaves out is "open", "softSmile", "wander", the toggle's default from FaceConfig.toggles,
+ * eyes at their own size and the face's blink. A mood's override is never passed on.
  */
 export interface MoodConfig extends Partial<Toggles> {
     eyes?: string;
@@ -161,7 +162,7 @@ export interface MoodConfig extends Partial<Toggles> {
     blink?: { interval?: number; variation?: number };
     /** Changes to the chosen eye and mouth states, for this mood only. */
     override?: { eyes?: Patch<EyeState>; mouth?: Partial<MouthState> };
-    /** For organising only: the folder it is filed in, as a path such as 'Upset/Angry'. */
+    /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
 }
 

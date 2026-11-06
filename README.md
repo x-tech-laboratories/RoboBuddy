@@ -54,9 +54,14 @@ A face is built in layers:
    - toggles, `setAutoblinker`, `setCuriosity`, `setSweat` and `setShake` (the eyes jitter left and right; the
      original's `setHFlicker`)
 2. **Moods**, named combinations of face states. `setMood()` takes the name or a constant: `DEFAULT`, `SAD`, `ANGRY`,
-   `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. A
-   eye or mouth state it leaves out is `open` or `softSmile`, a toggle it leaves out is its default, and
-   a look it leaves out stays where it is. Setting a face state yourself lasts until the next mood.
+   `HAPPY`, `SMIRK`, `ASLEEP`, `HAPPY_ASLEEP`, `WORRIED` and `FURIOUS`. A mood sets every face state it names. What it
+   leaves out comes from the `default` mood (its eye and mouth states, look, toggles, `scale` and `blink`, but not its
+   `override`), and what that leaves out is `open`, `softSmile`, `wander` and the toggle defaults. So every mood starts
+   from `default`, and nothing carries over from the mood before; edit `default` to change that starting point.
+   Setting a face state yourself lasts until the next mood.
+   `setMood(name, { for: ms })` makes a mood temporary: after that long the face goes back to the last mood set
+   without `for` (a reaction during a reaction goes back to the same one), so `surprised` for 1.5 s returns to
+   whatever was underneath. Face settings, modes and one-off actions (blink, wink, speech) are never touched by it.
 3. **Face settings**: the eyes' and mouth's size and place, timings, and the modes (cyclops, mouth, smooth motion
    and reduced motion), which no mood changes.
 
@@ -166,7 +171,9 @@ Moods and face states can be filed in folders with `group`, a path such as `'Ups
 them (the demo shows them as collapsible lists); they change nothing about how a face behaves, and every name must
 still be unique within its kind.
 
-`demo.html` has a control for every setting and shows the configuration as JSON, ready to copy.
+`demo.html` is a face builder: a control for every setting, in tabs (Play, Moods, Face, Eyes, Mouth, Looks, Behaviour), and an
+Import / Export tab that saves a face as a JSON file (all of it, or only what differs from the starting face), loads one
+back (by file, drop or paste) and saves the face as an image. Your work is kept in the browser between visits.
 
 ## Differences from the Arduino version
 
@@ -195,7 +202,7 @@ still be unique within its kind.
 - New moods, beyond the original's: `SMIRK` (open eyes with the top lids half down, smirk), `ASLEEP` (sleepy eyes
   looking straight ahead, the closed gasp mouth's dot, auto blink off), `HAPPY_ASLEEP` (sleepy eyes looking straight ahead, auto blink off),
   `WORRIED` (sad eyes, wavy mouth) and `FURIOUS` (angry eyes, open frown, wandering, curious and shaking), and, without
-  constants, `confused` (confused eyes, wavy mouth),
+  constants, `confused` (confused eyes, wavy mouth), `laughing` (happy eyes, the laugh mouth, laugh on),
   `curious` (open eyes, the open gasp mouth, following the mouse and curious),   `surprised` (open eyes, the open gasp mouth) and `scared` (worried, but with a flat-bottomed frown, sweating, shaking and looking around quickly).
 - Auto blink is a toggle, so a mood can turn it off (`autoblink: false`); `setAutoblinker()` sets it until the next
   mood.

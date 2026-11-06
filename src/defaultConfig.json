@@ -473,16 +473,18 @@
     },
     "moods": {
         "default": {
-            "look": "center",
-            "autoblink": true
-        },
-        "idle": {
             "look": "wander",
             "autoblink": true
         },
         "happy": {
             "eyes": "happy",
             "mouth": "openSmile",
+            "group": "Happy"
+        },
+        "laughing": {
+            "eyes": "happy",
+            "mouth": "laugh",
+            "laugh": true,
             "group": "Happy"
         },
         "smirk": {
@@ -521,7 +523,8 @@
         },
         "confused": {
             "eyes": "confused",
-            "mouth": "wavy"
+            "mouth": "wavy",
+            "group": "Thinking"
         },
         "thinking": {
             "mouth": "flat",
@@ -538,26 +541,29 @@
                         "curve": 0.15
                     }
                 }
-            }
+            },
+            "group": "Thinking"
         },
         "surprised": {
-            "mouth": "openGasp"
+            "mouth": "openGasp",
+            "group": "Surprise"
         },
         "curious": {
             "eyes": "open",
             "mouth": "closedGasp",
             "look": "follow",
-            "curious": true
+            "curious": true,
+            "group": "Surprise"
         },
         "sad": {
             "eyes": "sad",
             "mouth": "slack",
-            "group": "Upset"
+            "group": "Sad"
         },
         "worried": {
             "eyes": "sad",
             "mouth": "wavy",
-            "group": "Upset"
+            "group": "Fear"
         },
         "scared": {
             "eyes": "sad",
@@ -565,12 +571,12 @@
             "look": "lookAround",
             "sweat": true,
             "shake": true,
-            "group": "Upset"
+            "group": "Fear"
         },
         "angry": {
             "eyes": "angry",
             "mouth": "frown",
-            "group": "Upset/Angry"
+            "group": "Anger"
         },
         "furious": {
             "eyes": "angry",
@@ -578,7 +584,7 @@
             "look": "wander",
             "curious": true,
             "shake": true,
-            "group": "Upset/Angry"
+            "group": "Anger"
         }
     }
 }

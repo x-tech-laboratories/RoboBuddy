@@ -231,6 +231,8 @@ export class RoboEyes {
         this.looks = structuredClone(defaultConfig.looks);
         this.moods = structuredClone(defaultConfig.moods);
         this.mood = 'default'; // the mood set last
+        this.baseMood = 'default'; // the last mood set to stay: what a temporary mood goes back to
+        this.tempMoodEnd = 0; // when a temporary mood ends (millis()), 0 if the mood in use is not temporary
         this.eyeState = 'open';
         this.mouthState = 'softSmile';
         this.look = defaultConfig.look;
@@ -658,18 +660,31 @@ export class RoboEyes {
     }
     // Set mood expression. Port: a mood constant (SAD...) or the name of any entry in moods. The mood picks the face
     // states: its eye and mouth states (open and softSmile if it leaves them out, with its override), its toggles
-    // (their defaults if it leaves them out) and its look (the look stays as it is if the mood has none).
-    setMood(mood) {
+    // (their defaults if it leaves them out) and its look. Whatever a mood leaves out comes from the default mood, then
+    // from open, softSmile, wander and the toggle defaults, so nothing the previous mood picked carries over. { for: ms }
+    // makes the mood temporary: after that long the face goes back to the last mood set without it (a temporary mood
+    // set during another goes back to that same one).
+    setMood(mood, options = {}) {
         const name = typeof mood === 'number' ? MOOD_NAMES[mood] : mood;
-        this.mood = name in this.moods ? name : 'default';
-        const m = this.moods[this.mood];
-        for (const [key, field] of Object.entries(TOGGLES)) {
-            this[field] = m[key] ?? this.toggleDefaults[key];
+        const next = name in this.moods ? name : 'default';
+        if (options.for && options.for > 0) {
+            if (!this.tempMoodEnd)
+                this.baseMood = this.mood;
+            this.tempMoodEnd = millis() + options.for;
         }
-        this.applyEyes(m.eyes ?? 'open', m.override?.eyes ?? undefined);
-        this.applyMouth(m.mouth ?? 'softSmile', m.override?.mouth ?? undefined);
-        if (m.look)
-            this.setLook(m.look);
+        else {
+            this.baseMood = next;
+            this.tempMoodEnd = 0;
+        }
+        this.mood = next;
+        const m = this.moods[this.mood], base = this.moods.default;
+        for (const [key, field] of Object.entries(TOGGLES)) {
+            this[field] = m[key] ?? base[key] ?? this.toggleDefaults[key];
+        }
+        // The mood's override changes the state it ends up with, but the default mood's does not pass on to another mood's
+        this.applyEyes(m.eyes ?? base.eyes ?? 'open', m.override?.eyes ?? undefined);
+        this.applyMouth(m.mouth ?? base.mouth ?? 'softSmile', m.override?.mouth ?? undefined);
+        this.setLook(m.look ?? base.look ?? 'wander');
     }
     // Port: set the eye state by name (see eyeStates), whatever the mood
     setEyes(name) {
@@ -989,10 +1004,13 @@ export class RoboEyes {
         this.eyeLborderRadiusCurrent = int((this.eyeLborderRadiusCurrent + this.eyeLborderRadiusNext) / 2);
         // Right eye border radius
         this.eyeRborderRadiusCurrent = int((this.eyeRborderRadiusCurrent + this.eyeRborderRadiusNext) / 2);
+        // Port: a temporary mood ends, back to the one underneath
+        if (this.tempMoodEnd && millis() >= this.tempMoodEnd)
+            this.setMood(this.baseMood);
         // Port: the mood sets how big the eyes are drawn, and how often they blink
-        const mood = this.moods[this.mood] ?? {};
+        const mood = this.moods[this.mood] ?? {}, baseMood = this.moods.default ?? {}; // what a mood leaves out is the default mood's
         // (halfway each frame, but never in whole numbers: it is a multiple, so "pixel" precision rounds the sizes instead)
-        const scale = Math.max(0.1, mood.scale ?? 1);
+        const scale = Math.max(0.1, mood.scale ?? baseMood.scale ?? 1);
         this.eyeScale = Math.abs(scale - this.eyeScale) < 0.005 ? scale : (this.eyeScale + scale) / 2;
         // Port: with reduced motion, each pose holds and nothing keeps moving
         const still = this.motionReduced();
@@ -1056,7 +1074,7 @@ export class RoboEyes {
         if (this.autoblinker && !this.eyesClosed && !still) {
             if (millis() >= this.blinktimer) {
                 this.blink(!this.eyeLheld, !this.eyeRheld); // port: a winking eye stays closed
-                const interval = mood.blink?.interval ?? this.blinkInterval, variation = mood.blink?.variation ?? this.blinkIntervalVariation; // port: the mood's timing, if it has one
+                const interval = mood.blink?.interval ?? baseMood.blink?.interval ?? this.blinkInterval, variation = mood.blink?.variation ?? baseMood.blink?.variation ?? this.blinkIntervalVariation; // port: the mood's timing, if it has one
                 this.blinktimer = millis() + (interval * 1000) + (Math.random() * variation * 1000); // calculate next time for blinking
             }
         }

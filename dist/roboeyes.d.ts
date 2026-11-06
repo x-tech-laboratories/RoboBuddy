@@ -98,6 +98,8 @@ export declare class RoboEyes {
     looks: Record<string, LookState>;
     moods: Record<string, MoodConfig>;
     mood: string;
+    baseMood: string;
+    tempMoodEnd: number;
     eyeState: string;
     mouthState: string;
     look: string;
@@ -290,7 +292,9 @@ export declare class RoboEyes {
     setHeight(leftEye: number, rightEye: number): void;
     setBorderradius(leftEye: number, rightEye: number): void;
     setSpacebetween(space: number): void;
-    setMood(mood: Mood | string): void;
+    setMood(mood: Mood | string, options?: {
+        for?: number;
+    }): void;
     setEyes(name: string): void;
     setMouthState(name: string): void;
     setLook(name: string): void;

@@ -3,14 +3,15 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>RoboEyes (web port) with mouth</title>
+    <title>RoboEyes face builder</title>
     <style>
         :root { --outline: #8b93a1; }
+        [hidden] { display: none !important; }
         body { margin: 0; padding: 24px; background: #16181d; color: #cfd3da; font: 14px/1.4 system-ui, sans-serif; }
         h1 { font-size: 16px; margin: 0 0 16px; color: #fff; }
-        /* Settings on the left; the face on the right, pinned while the settings scroll. */
+        /* The tabs on the left; the face on the right, pinned while the controls scroll. */
         .layout { display: flex; gap: 24px; align-items: flex-start; }
-        .stage { order: 2; flex: none; position: sticky; top: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .stage { order: 2; flex: none; position: sticky; top: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         @media (max-width: 1000px) {
             .layout { flex-direction: column; }
             .stage { order: 0; position: static; }
@@ -24,27 +25,46 @@
         }
         .label { font-size: 12px; color: #8b93a1; text-align: center; margin-top: 6px; }
         .label.left { text-align: left; }
-        /* Folders: moods and face states filed with group: 'Upset/Angry' */
+        /* Folders: moods and face states filed with group: 'Anger/Furious' */
         details { margin: 2px 0 2px 14px; }
         summary { cursor: pointer; color: #8b93a1; font-size: 12px; margin: 2px 0; }
-        /* One column, top to bottom: each section changes the ones below it. */
-        .controls { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+        .controls { flex: 1; min-width: 0; }
         .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
         .sliders { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 16px; }
         h2 { font-size: 12px; font-weight: 600; color: #8b93a1; text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 2px; grid-column: 1 / -1; }
-        textarea { width: 100%; height: 220px; background: #0f1115; color: #cfd3da; border: 1px solid #2c3038; border-radius: 6px; font: 12px/1.4 ui-monospace, monospace; }
-        fieldset { border: 1px solid #2c3038; border-radius: 8px; padding: 10px 12px; margin: 0; }
+        textarea { width: 100%; box-sizing: border-box; height: 260px; background: #0f1115; color: #cfd3da; border: 1px solid #2c3038; border-radius: 6px; font: 12px/1.4 ui-monospace, monospace; }
+        fieldset { border: 1px solid #2c3038; border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; min-width: 0; }
         legend { color: #fff; padding: 0 4px; }
         button { background: #262a32; color: #e4e7ec; border: 1px solid #3a3f49; border-radius: 6px; padding: 5px 9px; margin: 2px; cursor: pointer; font: inherit; }
+        button:hover { border-color: #5a6272; }
         button.on { background: #0b5fae; border-color: #1d7fd8; }
         .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
         label { display: block; margin: 4px 0; }
         input[type=range] { width: 100%; }
+        input[type=text], input:not([type]), select { background: #0f1115; color: #cfd3da; border: 1px solid #2c3038; border-radius: 6px; padding: 4px 6px; font: inherit; }
+
+        /* Tabs: one section of controls at a time */
+        .tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid #2c3038; margin-bottom: 14px; }
+        .tabs button {
+            flex: none; margin: 0; border: 0; border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0;
+            background: none; color: #8b93a1; padding: 8px 14px;
+        }
+        .tabs button:hover { color: #fff; }
+        .tabs button[aria-selected=true] { color: #fff; border-bottom-color: #1d7fd8; }
+
+        /* Under the face: what you want whichever tab is open */
+        .toolbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+        .status { min-height: 1.4em; font-size: 12px; color: #8b93a1; text-align: center; max-width: 300px; }
+        .status.error { color: #ff8a80; }
+        .dropping::after {
+            content: 'Drop a face file to import it'; position: fixed; inset: 12px; display: grid; place-items: center;
+            border: 2px dashed #1d7fd8; border-radius: 12px; background: #16181dcc; color: #fff; font-size: 18px; pointer-events: none;
+        }
     </style>
 </head>
 
 <body>
-    <h1>RoboEyes, ported to the web, with a mouth</h1>
+    <h1>RoboEyes face builder</h1>
     <p><a href="./">Docs</a> · <a href="https://github.com/x-tech-laboratories/RoboEyes">Source</a></p>
 
     <div class="layout">
@@ -65,120 +85,208 @@
             </div>
             <div class="label">112×80 screen, in the original's white on black</div>
         </div>
+        <div class="toolbar">
+            <button id="bar-import">Import…</button>
+            <button id="bar-export">Export</button>
+            <button id="bar-png">Save image</button>
+            <button id="bar-reset">Start over</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <input type="file" id="file" accept=".json,application/json" hidden />
     </div>
 
     <div class="controls">
-        <div class="row">
+        <div class="tabs" role="tablist" aria-label="Face builder sections">
+            <button role="tab" id="tab-play" aria-controls="play">Play</button>
+            <button role="tab" id="tab-moods" aria-controls="moods-panel">Moods</button>
+            <button role="tab" id="tab-face" aria-controls="face-panel">Face</button>
+            <button role="tab" id="tab-eyes" aria-controls="eyes-panel">Eyes</button>
+            <button role="tab" id="tab-mouth" aria-controls="mouth-panel">Mouth</button>
+            <button role="tab" id="tab-looks" aria-controls="looks-panel">Looks</button>
+            <button role="tab" id="tab-behaviour" aria-controls="behaviour">Behaviour</button>
+            <button role="tab" id="tab-files" aria-controls="files">Import / Export</button>
+        </div>
+
+        <!-- Play: try the face out. Pick a mood, mix face states, make it move and speak. -->
+        <section class="panel" id="play" role="tabpanel" aria-labelledby="tab-play">
+            <div class="row">
+                <fieldset>
+                    <legend>Mood</legend>
+                    <div data-picker="moods"></div>
+                    <label><input type="checkbox" id="mood-temp" /> Only for <input type="number" id="mood-temp-s" value="2" min="0.5" max="30" step="0.5" style="width: 4em" /> s, then back to the one before</label>
+                </fieldset>
+                <fieldset>
+                    <legend>Moves</legend>
+                    <button data-do="blink">Blink</button>
+                    <button data-do="wink">Wink</button>
+                </fieldset>
+            </div>
             <fieldset>
-                <legend>Mood</legend>
-                <div id="moods"></div>
+                <legend>Face states</legend>
+                <div class="label left">A mood picks these; pick them here to mix your own. The next mood picks them again.</div>
+                <h2>Eyes</h2>
+                <div data-picker="eyes"></div>
+                <h2>Mouth</h2>
+                <div data-picker="mouths"></div>
+                <h2>Look</h2>
+                <div class="grid3" data-compass style="max-width: 220px"></div>
+                <div data-picker="other-looks"></div>
+                <h2>Toggles</h2>
+                <button data-toggle="autoblink">Auto blink</button>
+                <button data-toggle="curious">Curious</button>
+                <button data-toggle="sweat">Sweat</button>
+                <button data-toggle="shake">Shake</button>
+                <button data-toggle="talk">Talk</button>
+                <button data-toggle="laugh">Laugh</button>
+            </fieldset>
+            <fieldset>
+                <legend>Speak</legend>
+                <div class="label left">Type some text; its spelling is turned into sounds and mouth shapes (visemes) and played. Or hold one shape with its button.</div>
+                <input id="speak-text" size="40" value="Hello, I am a talking robot" />
+                <button id="speak-go">Speak</button>
+                <label>Speed <input type="range" id="speak-speed" min="0.4" max="3" step="0.1" value="1" /></label>
+                <div id="visemes"></div>
+            </fieldset>
+        </section>
+
+        <!-- Moods: a named combination of face states -->
+        <section class="panel" id="moods-panel" role="tabpanel" aria-labelledby="tab-moods" hidden>
+            <fieldset>
+                <legend>Pick a mood to edit</legend>
+                <div data-picker="moods"></div>
                 <label>Save the face as a new mood <input id="new-mood" size="10" /> <button id="add-mood">Add</button></label>
             </fieldset>
             <fieldset>
-                <legend>Moves</legend>
-                <button data-do="blink">Blink</button>
-                <button data-do="wink">Wink</button>
+                <legend>Mood: <span id="mood-name"></span></legend>
+                <label>Folder <input data-group-of="moods" size="24" placeholder="e.g. Anger/Furious" /></label>
+                <div class="sliders" id="mood-recipe"></div>
+                <div class="label left">Whatever a mood leaves out comes from the Default mood, so edit Default to change what every other mood starts from. A mood's overrides (changes to its eye and mouth states) belong to that mood alone and are in the configuration file.</div>
             </fieldset>
-        </div>
+        </section>
 
-        <fieldset>
-            <legend>Face states</legend>
-            <div class="label left">A mood picks these; pick them here to mix your own. The next mood picks them again.</div>
-            <h2>Eyes</h2>
-            <div id="eye-states"></div>
-            <h2>Mouth</h2>
-            <div id="mouth-states"></div>
-            <h2>Look</h2>
-            <div class="grid3" id="compass" style="max-width: 220px"></div>
-            <div id="other-looks"></div>
-            <h2>Toggles</h2>
-            <button data-toggle="autoblink">Auto blink</button>
-            <button data-toggle="curious">Curious</button>
-            <button data-toggle="sweat">Sweat</button>
-            <button data-toggle="shake">Shake</button>
-            <button data-toggle="talk">Talk</button>
-            <button data-toggle="laugh">Laugh</button>
-        </fieldset>
+        <!-- Eyes: the eye state in use, and the shape of the eyes themselves -->
+        <section class="panel" id="eyes-panel" role="tabpanel" aria-labelledby="tab-eyes" hidden>
+            <fieldset>
+                <legend>Pick an eye state to edit</legend>
+                <div data-picker="eyes"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Eye state: <span id="eye-name"></span></legend>
+                <div>
+                    Lids for
+                    <button data-side="both" class="on">Both eyes</button>
+                    <button data-side="left">Left eye</button>
+                    <button data-side="right">Right eye</button>
+                    <button id="eye-side-reset">Make it like both</button>
+                </div>
+                <label>Folder <input data-group-of="eyeStates" size="24" placeholder="e.g. Closed/One eye" /></label>
+                <div class="sliders" id="eye-sliders"></div>
+                <label>Copy as a new eye state <input id="new-eye" size="10" /> <button id="add-eye">Add</button></label>
+            </fieldset>
+        </section>
 
-        <fieldset>
-            <legend>Speak</legend>
-            <div class="label left">Type some text; its spelling is turned into sounds and mouth shapes (visemes) and played. Or hold one shape with its button.</div>
-            <input id="speak-text" size="40" value="Hello, I am a talking robot" />
-            <button id="speak-go">Speak</button>
-            <label>Speed <input type="range" id="speak-speed" min="0.4" max="3" step="0.1" value="1" /></label>
-            <div id="visemes"></div>
-        </fieldset>
+        <!-- Face: the structure no mood changes. Size, spacing and place of the eyes and mouth. -->
+        <section class="panel" id="face-panel" role="tabpanel" aria-labelledby="tab-face" hidden>
+            <div class="label left">The face's own build, the same in every mood: how big the eyes are, how far apart, and where the mouth sits.</div>
+            <fieldset>
+                <legend>Eyes</legend>
+                <div class="sliders" id="eye-shape-sliders"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Mouth</legend>
+                <div class="sliders" id="mouth-shape-sliders"></div>
+            </fieldset>
+        </section>
 
-        <fieldset>
-            <legend>Mood: <span id="mood-name"></span></legend>
-            <label>Folder <input data-group-of="moods" size="24" placeholder="e.g. Upset/Angry" /></label>
-            <div class="sliders" id="mood-recipe"></div>
-            <div class="label left">A mood's overrides (changes to its eye and mouth states) are in the configuration file.</div>
-        </fieldset>
+        <!-- Mouth -->
+        <section class="panel" id="mouth-panel" role="tabpanel" aria-labelledby="tab-mouth" hidden>
+            <fieldset>
+                <legend>Pick a mouth state to edit</legend>
+                <div data-picker="mouths"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Mouth state: <span id="mouth-name"></span></legend>
+                <label>Folder <input data-group-of="mouthStates" size="24" placeholder="e.g. Smiles" /></label>
+                <div class="sliders" id="mouth-sliders"></div>
+                <label>Copy as a new mouth state <input id="new-mouth" size="10" /> <button id="add-mouth">Add</button></label>
+            </fieldset>
+        </section>
 
-        <fieldset>
-            <legend>Eye state: <span id="eye-name"></span></legend>
-            <div>
-                Lids for
-                <button data-side="both" class="on">Both eyes</button>
-                <button data-side="left">Left eye</button>
-                <button data-side="right">Right eye</button>
-                <button id="eye-side-reset">Make it like both</button>
+        <!-- Looks -->
+        <section class="panel" id="looks-panel" role="tabpanel" aria-labelledby="tab-looks" hidden>
+            <fieldset>
+                <legend>Pick a look to edit</legend>
+                <div class="grid3" data-compass style="max-width: 220px"></div>
+                <div data-picker="other-looks"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Look: <span id="look-name"></span></legend>
+                <label>Folder <input data-group-of="looks" size="24" placeholder="e.g. Moving" /></label>
+                <div class="sliders" id="look-sliders"></div>
+                <label>Copy as a new look <input id="new-look" size="10" /> <button id="add-look">Add</button></label>
+            </fieldset>
+            <fieldset>
+                <legend>How looks move</legend>
+                <div class="sliders" id="look-behaviour-sliders"></div>
+            </fieldset>
+        </section>
+
+        <!-- Behaviour: what no mood changes -->
+        <section class="panel" id="behaviour" role="tabpanel" aria-labelledby="tab-behaviour" hidden>
+            <div class="row">
+                <fieldset>
+                    <legend>Toggle defaults</legend>
+                    <button data-default="autoblink">Auto blink</button>
+                    <button data-default="curious">Curious</button>
+                    <button data-default="sweat">Sweat</button>
+                    <button data-default="shake">Shake</button>
+                    <button data-default="talk">Talk</button>
+                    <button data-default="laugh">Laugh</button>
+                    <div class="label left">What a toggle is when the mood doesn't set it.</div>
+                </fieldset>
+                <fieldset>
+                    <legend>Face modes</legend>
+                    <button data-mode="cyclops">Cyclops</button>
+                    <button data-mode="mouth">Mouth</button>
+                    <button data-mode="smooth">Smooth motion</button>
+                    <div class="label left">The same in every mood.</div>
+                </fieldset>
             </div>
-            <label>Folder <input data-group-of="eyeStates" size="24" placeholder="e.g. Closed/One eye" /></label>
-            <div class="sliders" id="eye-sliders"></div>
-            <label>Copy as a new eye state <input id="new-eye" size="10" /> <button id="add-eye">Add</button></label>
-        </fieldset>
+            <fieldset>
+                <legend>Moves and timings</legend>
+                <div class="sliders" id="timing-sliders"></div>
+            </fieldset>
+            <fieldset>
+                <legend>Screen</legend>
+                <div class="sliders" id="screen-sliders"></div>
+            </fieldset>
+        </section>
 
-        <fieldset>
-            <legend>Mouth state: <span id="mouth-name"></span></legend>
-            <label>Folder <input data-group-of="mouthStates" size="24" placeholder="e.g. Smiles" /></label>
-            <div class="sliders" id="mouth-sliders"></div>
-            <label>Copy as a new mouth state <input id="new-mouth" size="10" /> <button id="add-mouth">Add</button></label>
-        </fieldset>
-
-        <fieldset>
-            <legend>Look: <span id="look-name"></span></legend>
-            <label>Folder <input data-group-of="looks" size="24" placeholder="e.g. Moving" /></label>
-            <div class="sliders" id="look-sliders"></div>
-            <label>Copy as a new look <input id="new-look" size="10" /> <button id="add-look">Add</button></label>
-        </fieldset>
-
-        <fieldset>
-            <legend>Toggle defaults</legend>
-            <button data-default="autoblink">Auto blink</button>
-            <button data-default="curious">Curious</button>
-            <button data-default="sweat">Sweat</button>
-            <button data-default="shake">Shake</button>
-            <button data-default="talk">Talk</button>
-            <button data-default="laugh">Laugh</button>
-            <div class="label left">What a toggle is when the mood doesn't set it.</div>
-        </fieldset>
-
-        <fieldset>
-            <legend>Face modes</legend>
-            <button data-mode="cyclops">Cyclops</button>
-            <button data-mode="mouth">Mouth</button>
-            <button data-mode="smooth">Smooth motion</button>
-            <div class="label left">The same in every mood.</div>
-        </fieldset>
-
-        <fieldset>
-            <legend>Moves and timings</legend>
-            <div class="sliders" id="move-sliders"></div>
-        </fieldset>
-
-        <fieldset>
-            <legend>Face</legend>
-            <div class="sliders" id="face-sliders"></div>
-        </fieldset>
-
-        <fieldset>
-            <legend>Configuration file</legend>
-            <textarea id="config" spellcheck="false"></textarea>
-            <button id="config-apply">Apply</button>
-            <button id="config-reset">Reset to defaults</button>
-        </fieldset>
+        <!-- Import / Export -->
+        <section class="panel" id="files" role="tabpanel" aria-labelledby="tab-files" hidden>
+            <fieldset>
+                <legend>Export</legend>
+                <div class="label left">A face is one JSON file: every mood, face state and setting. Your work is also kept in this browser, so a reload brings it back.</div>
+                <label>File name <input id="export-name" size="20" value="my-face" />.json</label>
+                <label><input type="checkbox" id="export-diff" /> Only what differs from the starting face (smaller; import it with "Add to the current face")</label>
+                <button id="export-download">Download</button>
+                <button id="export-copy">Copy to clipboard</button>
+                <button id="export-png">Save image</button>
+            </fieldset>
+            <fieldset>
+                <legend>Import</legend>
+                <div class="label left">Choose a file, drop one anywhere on the page, or paste JSON below and apply it.</div>
+                <button id="import-file">Choose a file…</button>
+                <label><input type="radio" name="import-mode" value="replace" checked /> Replace the face (moods and face states the file leaves out go away)</label>
+                <label><input type="radio" name="import-mode" value="merge" /> Add to the current face (keeps what the file leaves out)</label>
+            </fieldset>
+            <fieldset>
+                <legend>Configuration</legend>
+                <textarea id="config" spellcheck="false"></textarea>
+                <button id="config-apply">Apply</button>
+                <button id="config-reset">Reset to the starting face</button>
+            </fieldset>
+        </section>
     </div>
     </div>
 
@@ -199,14 +307,15 @@
                 frown: { width: 16 }, flat: { width: 14 }, smirk: { width: 18 }, wavy: { width: 18 },
             },
         });
-        const face = new R.RoboEyes(document.getElementById('face'), { config: faceConfig });
+        const canvas = document.getElementById('face');
+        const face = new R.RoboEyes(canvas, { config: faceConfig });
         face.setDisplayColors('#000', '#fff');
         face.begin(112, 80, 50);
         face.start();
         // A follow look looks at the mouse from the face's own place: straight ahead while the mouse is over the face,
         // and round to the eyes' limit by the time it is part of the way to the window's edge on that side
         window.addEventListener('pointermove', (e) => {
-            const box = document.getElementById('face').getBoundingClientRect();
+            const box = canvas.getBoundingClientRect();
             const aim = (pointer, from, to, size, full) => {
                 const side = pointer < from ? from : size - to; // room between the face and the window's edge on the mouse's side
                 const away = pointer < from ? from - pointer : Math.max(0, pointer - to);
@@ -215,6 +324,8 @@
             };
             face.lookAt(aim(e.clientX, box.left, box.right, window.innerWidth, face.followFullX), aim(e.clientY, box.top, box.bottom, window.innerHeight, face.followFullY));
         });
+
+        const $ = (id) => document.getElementById(id);
 
         // happyAsleep reads as "Happy asleep"
         const title = (name) => {
@@ -229,9 +340,34 @@
             return b;
         };
 
+        //// Tabs ////
+
+        const tabs = [...document.querySelectorAll('[role=tab]')];
+        const panelOf = (tab) => $(tab.getAttribute('aria-controls'));
+        function showTab(tab, focus = false) {
+            for (const t of tabs) {
+                const on = t === tab;
+                t.setAttribute('aria-selected', on);
+                t.tabIndex = on ? 0 : -1;
+                panelOf(t).hidden = !on;
+            }
+            history.replaceState(null, '', `#${tab.id.slice(4)}`);
+            if (focus) tab.focus();
+        }
+        tabs.forEach((tab, i) => {
+            tab.onclick = () => showTab(tab);
+            // Arrow keys move between tabs, as a tab list does
+            tab.onkeydown = (e) => {
+                const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+                if (to === undefined) return;
+                e.preventDefault();
+                showTab(tabs[(to + tabs.length) % tabs.length], true);
+            };
+        });
+
         //// Folders ////
 
-        // Lays out items in their folders (group: 'Upset/Angry'), each a collapsible list. Items outside any folder come
+        // Lays out items in their folders (group: 'Anger/Furious'), each a collapsible list. Items outside any folder come
         // first. Folders stay open or closed across redraws.
         const closedFolders = new Set();
         function foldered(kind, names, groupOf, make) {
@@ -284,8 +420,8 @@
         const toggleFields = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh' };
         const toggleSetters = { autoblink: 'setAutoblinker', curious: 'setCuriosity', sweat: 'setSweat', shake: 'setShake', talk: 'setTalk', laugh: 'setLaugh' };
 
-        document.getElementById('add-mood').onclick = () => {
-            const input = document.getElementById('new-mood');
+        $('add-mood').onclick = () => {
+            const input = $('new-mood');
             const name = input.value.trim();
             if (!name) return;
             // The face as it is now: its states, and the toggles that differ from their defaults
@@ -303,8 +439,8 @@
             ['mouth', 'mouthStates', () => face.mouthState, (name) => face.setMouthState(name)],
             ['look', 'looks', () => face.look, (name) => face.setLook(name)],
         ]) {
-            document.getElementById(`add-${id}`).onclick = () => {
-                const input = document.getElementById(`new-${id}`);
+            $(`add-${id}`).onclick = () => {
+                const input = $(`new-${id}`);
                 const name = input.value.trim();
                 if (!name) return;
                 face.configure({ [collection]: { [name]: face[collection][current()] } });
@@ -318,11 +454,11 @@
             blink: (eyes) => eyes.blink(),
             wink: (eyes) => eyes.blink(false, true),
         };
-        const speakText = document.getElementById('speak-text');
-        const speak = () => face.speak(speakText.value, { speed: Number(document.getElementById('speak-speed').value) });
-        document.getElementById('speak-go').onclick = speak;
+        const speakText = $('speak-text');
+        const speak = () => face.speak(speakText.value, { speed: Number($('speak-speed').value) });
+        $('speak-go').onclick = speak;
         speakText.onkeydown = (e) => { if (e.key === 'Enter') speak(); };
-        const visemeButtons = document.getElementById('visemes');
+        const visemeButtons = $('visemes');
         for (const name of Object.keys(face.visemes)) {
             const b = document.createElement('button');
             b.textContent = name;
@@ -351,7 +487,7 @@
         const recipe = [
             ['eyes', 'Eyes', () => Object.keys(face.eyeStates), 'open'],
             ['mouth', 'Mouth', () => Object.keys(face.mouthStates), 'softSmile'],
-            ['look', 'Look', () => Object.keys(face.looks), 'keep'],
+            ['look', 'Look', () => Object.keys(face.looks), 'wander'],
             ['autoblink', 'Auto blink', null], ['curious', 'Curious', null], ['sweat', 'Sweat', null], ['shake', 'Shake', null], ['talk', 'Talk', null], ['laugh', 'Laugh', null],
         ];
         const recipeSelects = recipe.map(([key, text, choices, missing]) => {
@@ -365,7 +501,7 @@
                 render();
             };
             label.append(`${text} `, choice);
-            document.getElementById('mood-recipe').append(label);
+            $('mood-recipe').append(label);
             return { key, choice, choices, missing };
         });
 
@@ -390,61 +526,7 @@
                 ['Top eyelid'], ...lid('top'),
                 ['Bottom eyelid'], ...lid('bottom'),
             ],
-            'mouth-sliders': [
-                ['@mouth.left', 'Left corner', -10, 10, 1],
-                ['@mouth.right', 'Right corner', -10, 10, 1],
-                ['@mouth.open', 'Open (middle)', 0, 14, 1],
-                ['@mouth.leftOpen', 'Open (left corner)', 0, 14, 1],
-                ['@mouth.rightOpen', 'Open (right corner)', 0, 14, 1],
-                ['@mouth.width', 'Length', 0, 60, 1],
-                ['@mouth.ownWidth', 'Always use this length (even with the face\'s length below)', 'check'],
-                ['@mouth.followLook', 'Mirror the corners when looking left', 'check'],
-                ['mouth.moodWidth', 'The mouth state sets the length (off: the face\'s length, under Face)', 'check'],
-            ],
-            'look-sliders': [
-                ['@look.wander', 'Wander (look somewhere random every so often)', 'check'],
-                ['@look.follow', 'Follow (look at the mouse)', 'check'],
-                ['@look.shakeHead', 'Shake head', 'check'],
-                ['@look.nod', 'Nod', 'check'],
-                ['@look.x', 'Across (0 left, 1 right)', 0, 1, 0.05],
-                ['@look.y', 'Down (0 top, 1 bottom)', 0, 1, 0.05],
-            ],
-            'move-sliders': [
-                ['Auto blink'],
-                ['blink.interval', 'Interval (s)', 0, 10, 1],
-                ['blink.variation', 'Random extra (s)', 0, 10, 1],
-                ['Wander'],
-                ['wander.interval', 'Interval (s)', 0, 10, 1],
-                ['wander.variation', 'Random extra (s)', 0, 10, 1],
-                ['Laugh'],
-                ['laugh.frequency', 'Bounces per second', 1, 12, 0.5],
-                ['laugh.amplitude', 'Eye lift (px)', 0, 12, 1],
-                ['laugh.mouthAmplitude', 'Mouth lift (px)', 0, 10, 1],
-                ['laugh.squint', 'Squint', 0, 0.6, 0.05],
-                ['laugh.mouthOpen', 'Mouth opening (px)', 0, 14, 1],
-                ['Shake head'],
-                ['shakeHead.amplitude', 'Swing', 0, 40, 1],
-                ['shakeHead.speed', 'Speed', 0.05, 0.8, 0.05],
-                ['Talk'],
-                ['talk.open', 'Opening when the mouth has none (px)', 0, 14, 1],
-                ['talk.syllableMs', 'Syllable (ms)', 20, 400, 10],
-                ['talk.variationMs', 'Random extra (ms)', 0, 400, 10],
-                ['talk.pauseChance', 'Pause chance', 0, 1, 0.05],
-                ['talk.lipLift', 'Upper lip lift (px)', 0, 6, 0.5],
-                ['talk.cornerSway', 'Corner sway (px)', 0, 5, 0.5],
-                ['Nod'],
-                ['nod.amplitude', 'Swing', 0, 20, 1],
-                ['nod.speed', 'Speed', 0.05, 0.8, 0.05],
-                ['Curious'],
-                ['curious.growth', 'Outer eye growth', 0, 20, 1],
-                ['curious.edge', 'Distance from edge', 0, 40, 1],
-                ['Follow'],
-                ['follow.fullX', 'Turn fully across at (share of the way to the edge)', 0.1, 1, 0.05],
-                ['follow.fullY', 'Turn fully down at (share of the way to the edge)', 0.1, 1, 0.05],
-                ['Shake'],
-                ['shake.amplitude', 'Jitter (px)', 0, 20, 1],
-            ],
-            'face-sliders': [
+            'eye-shape-sliders': [
                 ['Left eye'],
                 ['eyes.left.width', 'Width', 4, 80, 1],
                 ['eyes.left.height', 'Height', 4, 80, 1],
@@ -458,13 +540,71 @@
                 ['eyes.spacing', 'Space between', -20, 60, 1],
                 ['eyes.closedHeight', 'Height when closed', 0, 20, 1],
                 ['eyes.offsetY', 'Face moved down by (px, from centred)', -20, 20, 1],
-                ['Mouth'],
+            ],
+            'mouth-sliders': [
+                ['@mouth.left', 'Left corner', -10, 10, 1],
+                ['@mouth.right', 'Right corner', -10, 10, 1],
+                ['@mouth.open', 'Open (middle)', 0, 14, 1],
+                ['@mouth.leftOpen', 'Open (left corner)', 0, 14, 1],
+                ['@mouth.rightOpen', 'Open (right corner)', 0, 14, 1],
+                ['@mouth.width', 'Length', 0, 60, 1],
+                ['@mouth.ownWidth', 'Always use this length (even with the face\'s length under Face)', 'check'],
+                ['@mouth.followLook', 'Mirror the corners when looking left', 'check'],
+                ['mouth.moodWidth', 'The mouth state sets the length (off: the face\'s length, under Face)', 'check'],
+            ],
+            'mouth-shape-sliders': [
                 ['mouth.gap', 'Height below eyes', 0, 30, 1],
                 ['mouth.thickness', 'Thickness', 1, 10, 1],
                 ['mouth.radius', 'Round corners', 0, 10, 1],
                 ['mouth.curl', 'Corner length', 0, 0.5, 0.05],
                 ['mouth.width', 'Length, when the mouth state doesn\'t set it', 0, 60, 1],
-                ['Screen'],
+            ],
+            'look-sliders': [
+                ['@look.wander', 'Wander (look somewhere random every so often)', 'check'],
+                ['@look.follow', 'Follow (look at the mouse)', 'check'],
+                ['@look.shakeHead', 'Shake head', 'check'],
+                ['@look.nod', 'Nod', 'check'],
+                ['@look.x', 'Across (0 left, 1 right)', 0, 1, 0.05],
+                ['@look.y', 'Down (0 top, 1 bottom)', 0, 1, 0.05],
+            ],
+            'look-behaviour-sliders': [
+                ['Wander'],
+                ['wander.interval', 'Interval (s)', 0, 10, 1],
+                ['wander.variation', 'Random extra (s)', 0, 10, 1],
+                ['Follow'],
+                ['follow.fullX', 'Turn fully across at (share of the way to the edge)', 0.1, 1, 0.05],
+                ['follow.fullY', 'Turn fully down at (share of the way to the edge)', 0.1, 1, 0.05],
+                ['Shake head'],
+                ['shakeHead.amplitude', 'Swing', 0, 40, 1],
+                ['shakeHead.speed', 'Speed', 0.05, 0.8, 0.05],
+                ['Nod'],
+                ['nod.amplitude', 'Swing', 0, 20, 1],
+                ['nod.speed', 'Speed', 0.05, 0.8, 0.05],
+                ['Curious'],
+                ['curious.growth', 'Outer eye growth', 0, 20, 1],
+                ['curious.edge', 'Distance from edge', 0, 40, 1],
+            ],
+            'timing-sliders': [
+                ['Auto blink'],
+                ['blink.interval', 'Interval (s)', 0, 10, 1],
+                ['blink.variation', 'Random extra (s)', 0, 10, 1],
+                ['Laugh'],
+                ['laugh.frequency', 'Bounces per second', 1, 12, 0.5],
+                ['laugh.amplitude', 'Eye lift (px)', 0, 12, 1],
+                ['laugh.mouthAmplitude', 'Mouth lift (px)', 0, 10, 1],
+                ['laugh.squint', 'Squint', 0, 0.6, 0.05],
+                ['laugh.mouthOpen', 'Mouth opening (px)', 0, 14, 1],
+                ['Talk'],
+                ['talk.open', 'Opening when the mouth has none (px)', 0, 14, 1],
+                ['talk.syllableMs', 'Syllable (ms)', 20, 400, 10],
+                ['talk.variationMs', 'Random extra (ms)', 0, 400, 10],
+                ['talk.pauseChance', 'Pause chance', 0, 1, 0.05],
+                ['talk.lipLift', 'Upper lip lift (px)', 0, 6, 0.5],
+                ['talk.cornerSway', 'Corner sway (px)', 0, 5, 0.5],
+                ['Shake'],
+                ['shake.amplitude', 'Jitter (px)', 0, 20, 1],
+            ],
+            'screen-sliders': [
                 ['frameRate', 'Frame rate', 5, 60, 1],
                 ['modes.reducedMotion', 'Motion', 'select', [['auto', 'Follow the system (prefers-reduced-motion)'], [true, 'Reduced: hold each pose'], [false, 'Full']]],
             ],
@@ -472,7 +612,7 @@
         // Which eye the lid sliders edit: both (the shared lids), or one eye's own
         let eyeSide = 'both';
         document.querySelectorAll('[data-side]').forEach((b) => b.onclick = () => { eyeSide = b.dataset.side; render(); });
-        document.getElementById('eye-side-reset').onclick = () => {
+        $('eye-side-reset').onclick = () => {
             face.configure({ eyeStates: { [face.eyeState]: { [eyeSide]: null } } });
             render();
         };
@@ -495,7 +635,7 @@
         }
         const inputs = [];
         for (const [id, rows] of Object.entries(groups)) {
-            const box = document.getElementById(id);
+            const box = $(id);
             for (const [path, text, min, max, step] of rows) {
                 if (text === undefined) {
                     const h = document.createElement('h2');
@@ -532,38 +672,43 @@
         //// Showing the face's settings ////
 
         const COMPASS = ['NW', 'N', 'NE', 'W', 'center', 'E', 'SW', 'S', 'SE'];
+        // Several tabs show the same picker, so each is filled in place
+        const fill = (selector, nodes) => document.querySelectorAll(selector).forEach((box) => box.replaceChildren(...nodes(box)));
+        // Only the Play tab's moods are tried out for a while; on the Moods tab, picking one is how you edit it
+        const pickMood = (box, name) => face.setMood(name, box.closest('#play') && $('mood-temp').checked ? { for: Number($('mood-temp-s').value) * 1000 } : {});
         function render() {
             const config = face.getConfig();
-            document.getElementById('moods').replaceChildren(...foldered('moods', Object.keys(face.moods), (name) => face.moods[name].group,
-                (name) => button(title(name), name === face.mood, () => face.setMood(name))));
-            document.getElementById('eye-states').replaceChildren(...foldered('eyes', Object.keys(face.eyeStates), (name) => face.eyeStates[name].group,
+            fill('[data-picker=moods]', (box) => foldered('moods', Object.keys(face.moods), (name) => face.moods[name].group,
+                (name) => button(title(name), name === face.mood, () => pickMood(box, name))));
+            fill('[data-picker=eyes]', () => foldered('eyes', Object.keys(face.eyeStates), (name) => face.eyeStates[name].group,
                 (name) => button(title(name), name === face.eyeState, () => face.setEyes(name))));
-            document.getElementById('mouth-states').replaceChildren(...foldered('mouths', Object.keys(face.mouthStates), (name) => face.mouthStates[name].group,
+            fill('[data-picker=mouths]', () => foldered('mouths', Object.keys(face.mouthStates), (name) => face.mouthStates[name].group,
                 (name) => button(title(name), name === face.mouthState, () => face.setMouthState(name))));
-            document.getElementById('compass').replaceChildren(...COMPASS.map((name) =>
+            fill('[data-compass]', () => COMPASS.map((name) =>
                 face.looks[name] ? button(name === 'center' ? '•' : name, name === face.look, () => face.setLook(name)) : document.createElement('span')));
             // The compass looks sit in the pad above; the rest in their folders
-            document.getElementById('other-looks').replaceChildren(...foldered('looks', Object.keys(face.looks).filter((name) => !COMPASS.includes(name)),
+            fill('[data-picker=other-looks]', () => foldered('looks', Object.keys(face.looks).filter((name) => !COMPASS.includes(name)),
                 (name) => face.looks[name].group, (name) => button(title(name), name === face.look, () => face.setLook(name))));
             document.querySelectorAll('[data-group-of]').forEach((input) => {
                 if (document.activeElement !== input) input.value = face[input.dataset.groupOf][editing[input.dataset.groupOf]()]?.group ?? '';
             });
 
-            document.getElementById('mood-name').textContent = title(face.mood);
-            document.getElementById('eye-name').textContent = title(face.eyeState);
+            $('mood-name').textContent = title(face.mood);
+            $('eye-name').textContent = title(face.eyeState);
             document.querySelectorAll('[data-side]').forEach((b) => b.classList.toggle('on', b.dataset.side === eyeSide));
-            const reset = document.getElementById('eye-side-reset');
-            reset.hidden = eyeSide === 'both' || !face.eyeStates[face.eyeState]?.[eyeSide];
-            document.getElementById('mouth-name').textContent = title(face.mouthState);
-            document.getElementById('look-name').textContent = title(face.look);
+            $('eye-side-reset').hidden = eyeSide === 'both' || !face.eyeStates[face.eyeState]?.[eyeSide];
+            $('mouth-name').textContent = title(face.mouthState);
+            $('look-name').textContent = title(face.look);
 
-            const mood = face.moods[face.mood];
+            // What a mood leaves out comes from the Default mood, and for that from the face's own fallbacks
+            const mood = face.moods[face.mood], base = face.moods.default ?? {};
+            const inherits = face.mood === 'default' ? '' : 'as Default: ';
             for (const { key, choice, choices, missing } of recipeSelects) {
                 const option = (value, text) => Object.assign(document.createElement('option'), { value, textContent: text });
                 const collection = { eyes: face.eyeStates, mouth: face.mouthStates, look: face.looks }[key];
                 choice.replaceChildren(...(choices
-                    ? [option('', `(${missing})`), ...folderedOptions(choices(), (name) => collection?.[name]?.group)]
-                    : [option('', `Default (${face.toggleDefaults[key] ? 'on' : 'off'})`), option('on', 'On'), option('off', 'Off')]));
+                    ? [option('', `(${inherits}${base[key] ?? missing})`), ...folderedOptions(choices(), (name) => collection?.[name]?.group)]
+                    : [option('', `(${inherits}${base[key] ?? face.toggleDefaults[key] ? 'on' : 'off'})`), option('on', 'On'), option('off', 'Off')]));
                 const value = mood[key];
                 choice.value = value === undefined ? '' : choices ? value : value ? 'on' : 'off';
             }
@@ -574,7 +719,7 @@
                 else if (input.tagName === 'SELECT') input.value = JSON.stringify(value ?? false);
                 // What a slider shows when the setting is left out: the mood's eyes at their own size and the face's blink;
                 // a mouth state without a length shows the face's
-                else input.value = value ?? { '@mood.scale': 1, '@mood.blink.interval': config.blink.interval, '@mood.blink.variation': config.blink.variation }[path] ?? config.mouth.width;
+                else input.value = value ?? { '@mood.scale': base.scale ?? 1, '@mood.blink.interval': base.blink?.interval ?? config.blink.interval, '@mood.blink.variation': base.blink?.variation ?? config.blink.variation }[path] ?? config.mouth.width;
                 out.textContent = value === undefined ? '' : `(${value})`;
             }
             // Sliders that would do nothing right now
@@ -587,35 +732,148 @@
             document.querySelectorAll('[data-toggle]').forEach((b) => b.classList.toggle('on', face[toggleFields[b.dataset.toggle]]));
             document.querySelectorAll('[data-default]').forEach((b) => b.classList.toggle('on', face.toggleDefaults[b.dataset.default]));
             document.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('on', config.modes[b.dataset.mode]));
-            const text = document.getElementById('config');
-            if (document.activeElement !== text) text.value = JSON.stringify(config, null, 2);
+            const text = $('config');
+            if (document.activeElement !== text) text.value = exportText(config);
+            save(config);
         }
 
-        //// Configuration file ////
+        //// Import and export ////
 
-        // A file replaces the face states and moods, so ones it leaves out go away
-        function load(config) {
-            for (const collection of ['eyeStates', 'mouthStates', 'looks', 'moods']) if (config[collection]) face[collection] = {};
+        const STORAGE_KEY = 'roboeyes-face-builder';
+        let statusTimer;
+        function say(message, error = false) {
+            const box = $('status');
+            box.textContent = message;
+            box.classList.toggle('error', error);
+            clearTimeout(statusTimer);
+            statusTimer = setTimeout(() => box.textContent = '', 5000);
+        }
+        // Keeps the work across reloads. Storage can be full or blocked, and the builder works without it.
+        function save(config) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* not kept */ }
+        }
+
+        // What differs between two configs: the parts of `now` that are not the same in `base`. Arrays count as values.
+        function changes(base, now) {
+            if (now && typeof now === 'object' && !Array.isArray(now)) {
+                const out = {};
+                for (const [key, value] of Object.entries(now)) {
+                    const change = changes(base?.[key], value);
+                    if (change !== undefined) out[key] = change;
+                }
+                return Object.keys(out).length ? out : undefined;
+            }
+            return JSON.stringify(base) === JSON.stringify(now) ? undefined : now;
+        }
+        // The face as JSON text: all of it, or only what differs from the starting face
+        function exportText(config = face.getConfig()) {
+            return JSON.stringify($('export-diff').checked ? changes(faceConfig, config) ?? {} : config, null, 2);
+        }
+        $('export-diff').onchange = () => { $('config').value = exportText(); };
+
+        // "Replace" swaps the face states and moods for the file's, so ones it leaves out go away; "add" lays the file
+        // over the current face.
+        function load(config, add = false) {
+            if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('a face file is a JSON object');
+            if (!add) for (const collection of ['eyeStates', 'mouthStates', 'looks', 'moods']) if (config[collection]) face[collection] = {};
             face.configure(config);
-            face.setMood(face.mood);
+            face.setMood(face.moods[face.mood] ? face.mood : Object.keys(face.moods)[0]);
             render();
         }
-        document.getElementById('config-apply').onclick = () => {
+        const importMode = () => document.querySelector('[name=import-mode]:checked').value;
+        function importText(text, name = 'the pasted text') {
             try {
-                load(JSON.parse(document.getElementById('config').value));
+                load(JSON.parse(text), importMode() === 'merge');
+                say(`Imported ${name}.`);
             } catch (error) {
-                alert(`That is not valid JSON: ${error.message}`);
+                say(`Could not import ${name}: ${error.message}`, true);
             }
-        };
-        document.getElementById('config-reset').onclick = () => load(faceConfig);
+        }
+        function importFile(file) {
+            file.text().then((text) => importText(text, file.name), () => say(`Could not read ${file.name}.`, true));
+        }
 
-        // For screenshots: ?mood=happy&look=E sets a state on load. Names match in any case.
+        function download(blob, name) {
+            const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+        const fileName = (ext) => `${$('export-name').value.trim().replace(/[^\w.-]+/g, '-').replace(/^\.+/, '') || 'my-face'}.${ext}`;
+        function exportJson() {
+            const name = fileName('json');
+            download(new Blob([exportText()], { type: 'application/json' }), name);
+            say(`Saved ${name}.`);
+        }
+        // The face's pixels, scaled up whole so they stay sharp
+        function exportImage() {
+            const scale = 8, out = document.createElement('canvas');
+            out.width = canvas.width * scale;
+            out.height = canvas.height * scale;
+            const context = out.getContext('2d');
+            context.imageSmoothingEnabled = false;
+            context.drawImage(canvas, 0, 0, out.width, out.height);
+            out.toBlob((blob) => {
+                const name = fileName('png');
+                download(blob, name);
+                say(`Saved ${name}.`);
+            });
+        }
+
+        $('bar-export').onclick = exportJson;
+        $('export-download').onclick = exportJson;
+        $('bar-png').onclick = exportImage;
+        $('export-png').onclick = exportImage;
+        $('export-copy').onclick = () => navigator.clipboard.writeText(exportText()).then(
+            () => say('Copied the face to the clipboard.'), () => say('The browser would not let the page copy.', true));
+        $('bar-import').onclick = () => $('file').click();
+        $('import-file').onclick = () => $('file').click();
+        $('file').onchange = (e) => {
+            if (e.target.files[0]) importFile(e.target.files[0]);
+            e.target.value = ''; // so the same file can be chosen again
+        };
+        // A file dropped anywhere on the page
+        let dragDepth = 0;
+        const hasFile = (e) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+        window.addEventListener('dragenter', (e) => { if (hasFile(e)) { dragDepth++; document.body.classList.add('dropping'); } });
+        window.addEventListener('dragleave', (e) => { if (hasFile(e) && --dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dropping'); } });
+        window.addEventListener('dragover', (e) => { if (hasFile(e)) e.preventDefault(); });
+        window.addEventListener('drop', (e) => {
+            if (!hasFile(e)) return;
+            e.preventDefault();
+            dragDepth = 0;
+            document.body.classList.remove('dropping');
+            if (e.dataTransfer.files[0]) importFile(e.dataTransfer.files[0]);
+        });
+
+        $('config-apply').onclick = () => importText($('config').value);
+        const startOver = () => {
+            load(faceConfig);
+            say('Back to the starting face.');
+        };
+        $('config-reset').onclick = startOver;
+        $('bar-reset').onclick = () => { if (confirm('Throw away your changes and go back to the starting face?')) startOver(); };
+
+        //// Starting up ////
+
+        // For screenshots: ?mood=happy&look=E sets a state on load, and skips what was kept. Names match in any case.
         const params = new URLSearchParams(location.search);
+        if (!params.size) {
+            try {
+                const kept = localStorage.getItem(STORAGE_KEY);
+                if (kept) load(JSON.parse(kept));
+            } catch {
+                say('Could not restore your last face; starting fresh.', true);
+            }
+        }
         const find = (names, name) => names.find((n) => n.toLowerCase() === name.toLowerCase()) ?? name;
         if (params.get('mood')) face.setMood(find(Object.keys(face.moods), params.get('mood')));
         if (params.get('look')) face.setLook(find(Object.keys(face.looks), params.get('look')));
         if (params.get('blink') === 'off') face.setAutoblinker(R.OFF);
+        showTab($(`tab-${location.hash.slice(1)}`) ?? tabs[0]);
         render();
+        // A temporary mood ends by itself, so the pickers catch up with it
+        let shownMood = face.mood;
+        setInterval(() => { if (face.mood !== shownMood) { shownMood = face.mood; render(); } }, 200);
     </script>
 </body>
 
