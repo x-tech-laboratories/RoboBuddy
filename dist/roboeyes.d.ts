@@ -1,4 +1,4 @@
-import { type EyeState, type FaceConfig, type FaceConfigPatch, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles, type Viseme } from './config.js';
+import { type EyeState, type FaceConfig, type FaceConfigPatch, type IntroStep, type LookState, type MoodConfig, type MouthState, type Patch, type Toggles, type Viseme } from './config.js';
 import { type SpeechOptions } from './speech.js';
 export * from './config.js';
 export { textToVisemes, type SpeechOptions } from './speech.js';
@@ -104,6 +104,9 @@ export declare class RoboEyes {
     transitionSpeed: number;
     transitionBlink: boolean;
     transitionEnd: number;
+    introQueue: IntroStep[];
+    introStep: IntroStep | undefined;
+    introEnd: number;
     eyeState: string;
     mouthState: string;
     look: string;
@@ -331,6 +334,7 @@ export declare class RoboEyes {
     setMood(mood: Mood | string, options?: {
         for?: number;
     }): void;
+    private applyMoodStates;
     setEyes(name: string): void;
     setMouthState(name: string): void;
     setLook(name: string): void;

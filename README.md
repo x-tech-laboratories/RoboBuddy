@@ -174,6 +174,19 @@ eyes.configure({ moods: {
 } });
 ```
 
+A mood can also play an `intro` as it comes in: steps in turn, each holding for `ms`, with the eye state, mouth state
+and `scale` it names (what a step leaves out is the mood's own), before the mood's own states take over. `startled`
+pops its eyes to 1.3 times their size for 150 ms, then settles at its own 1.12; `waking` flutters its eyes open:
+closed, sleepy, closed, sleepy, then open. Setting the mood again while it is in use doesn't replay it, and reduced
+motion skips it:
+
+```js
+eyes.configure({ moods: {
+  startled: { mouth: 'closedGasp', scale: 1.12, intro: [{ scale: 1.3, ms: 150 }] },
+} });
+eyes.setMood('startled', { for: 1500 }); // pop, hold, then back to the mood underneath
+```
+
 `null` in a mood removes that choice, as if the mood had left it out.
 
 Moods and face states can be filed in folders with `group`, a path such as `'Anger/Furious'`. Folders only organise

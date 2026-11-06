@@ -26,6 +26,9 @@ export interface EyeState {
     /** true: both eyes stay closed, and auto blink and wander wait. 'left' or 'right' (as seen on screen): that eye
      *  stays closed, a wink, and auto blink blinks only the other. */
     closed: boolean | 'left' | 'right';
+    /** Draw each eye as this shape instead of a rounded rectangle: 'heart' is a beating heart, for love. The lids
+     *  don't apply to it, and it closes with a blink like any eye. */
+    shape?: 'heart';
 }
 /** A mouth state, in screen pixels. */
 export interface MouthState {
@@ -145,6 +148,10 @@ export interface MoodConfig extends Partial<Toggles> {
         interval?: number;
         variation?: number;
     };
+    /** Steps played in turn as the mood comes in, before its own states take over: a pop of the eyes for startled,
+     *  eyes fluttering open for waking. Each step holds for ms, with the eye state, mouth state and scale it names
+     *  (what it leaves out is the mood's own). Skipped with reduced motion, and when the mood is set again while in use. */
+    intro?: IntroStep[];
     /** Changes to the chosen eye and mouth states, for this mood only. */
     override?: {
         eyes?: Patch<EyeState>;
@@ -152,6 +159,13 @@ export interface MoodConfig extends Partial<Toggles> {
     };
     /** For organising only: the folder it is filed in, as a path such as 'Anger/Furious'. */
     group?: string;
+}
+/** One step of a mood's intro. */
+export interface IntroStep {
+    eyes?: string;
+    mouth?: string;
+    scale?: number;
+    ms: number;
 }
 export interface EyeShape {
     width: number;

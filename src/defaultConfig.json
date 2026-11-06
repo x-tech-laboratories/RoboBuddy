@@ -294,6 +294,35 @@
             },
             "closed": "left",
             "group": "One eye"
+        },
+        "disgusted": {
+            "top": {
+                "height": 0.45,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.3,
+                "angle": 0,
+                "curve": -0.15
+            },
+            "closed": false,
+            "group": "Disgust"
+        },
+        "hearts": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "shape": "heart",
+            "group": "Love"
         }
     },
     "mouthStates": {
@@ -405,6 +434,13 @@
             "leftOpen": 6,
             "rightOpen": 6,
             "group": "Sad"
+        },
+        "grimace": {
+            "left": -4,
+            "right": 1,
+            "width": 20,
+            "followLook": true,
+            "group": "Disgust"
         }
     },
     "looks": {
@@ -647,6 +683,28 @@
             "autoblink": false,
             "group": "Sleepy"
         },
+        "waking": {
+            "look": "center",
+            "intro": [
+                {
+                    "eyes": "closed",
+                    "ms": 500
+                },
+                {
+                    "eyes": "sleepy",
+                    "ms": 400
+                },
+                {
+                    "eyes": "closed",
+                    "ms": 300
+                },
+                {
+                    "eyes": "sleepy",
+                    "ms": 600
+                }
+            ],
+            "group": "Sleepy"
+        },
         "confused": {
             "eyes": "confused",
             "mouth": "wry",
@@ -684,6 +742,17 @@
         },
         "surprised": {
             "mouth": "openGasp",
+            "group": "Surprise"
+        },
+        "startled": {
+            "mouth": "closedGasp",
+            "scale": 1.12,
+            "intro": [
+                {
+                    "scale": 1.3,
+                    "ms": 150
+                }
+            ],
             "group": "Surprise"
         },
         "curious": {
@@ -792,6 +861,19 @@
             "mouth": "frown",
             "look": "shakeHeadCenter",
             "group": "Anger"
+        },
+        "disgusted": {
+            "eyes": "disgusted",
+            "mouth": "grimace",
+            "look": "SW",
+            "group": "Disgust"
+        },
+        "inLove": {
+            "eyes": "hearts",
+            "mouth": "softSmile",
+            "look": "center",
+            "scale": 1.1,
+            "group": "Love"
         }
     }
 }

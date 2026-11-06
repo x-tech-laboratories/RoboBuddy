@@ -237,6 +237,8 @@ export class RoboEyes {
         this.transitionSpeed = defaultConfig.transition.speed; // how much of the remaining way the mouth, lids and eye size go each frame meanwhile
         this.transitionBlink = defaultConfig.transition.blink; // blink as the mood changes
         this.transitionEnd = 0; // when the mood now easing in is done (millis())
+        this.introQueue = []; // the steps of the mood's intro still to come
+        this.introEnd = 0; // when it is over (millis())
         this.eyeState = 'open';
         this.mouthState = 'softSmile';
         this.look = defaultConfig.look;
@@ -743,13 +745,30 @@ export class RoboEyes {
         for (const [key, field] of Object.entries(TOGGLES)) {
             this[field] = m[key] ?? base[key] ?? this.toggleDefaults[key];
         }
-        // The mood's override changes the state it ends up with, but the default mood's does not pass on to another mood's
-        this.applyEyes(m.eyes ?? base.eyes ?? 'open', m.override?.eyes ?? undefined);
-        this.applyMouth(m.mouth ?? base.mouth ?? 'softSmile', m.override?.mouth ?? undefined);
+        this.applyMoodStates();
         this.setLook(m.look ?? base.look ?? 'wander');
+        // Port: a mood coming in plays its intro first (drawEyes() steps through it)
+        if (changed) {
+            this.introQueue = this.motionReduced() ? [] : (m.intro ?? []).slice();
+            this.introStep = undefined;
+            this.introEnd = 0;
+        }
         // Eyes that open or close with the mood do that on their own, so only open ones blink
         if (changed && this.transitionBlink && this.transitionMs > 0 && !eyesWereHeld && !this.eyeLheld && !this.eyeRheld && !this.motionReduced())
             this.blink();
+    }
+    // The mood's eye and mouth states, or an intro step's instead. The mood's override changes the state it ends up
+    // with, but the default mood's does not pass on to another mood's.
+    applyMoodStates(step) {
+        const m = this.moods[this.mood], base = this.moods.default;
+        if (step?.eyes)
+            this.applyEyes(step.eyes);
+        else
+            this.applyEyes(m.eyes ?? base.eyes ?? 'open', m.override?.eyes ?? undefined);
+        if (step?.mouth)
+            this.applyMouth(step.mouth);
+        else
+            this.applyMouth(m.mouth ?? base.mouth ?? 'softSmile', m.override?.mouth ?? undefined);
     }
     // Port: set the eye state by name (see eyeStates), whatever the mood
     setEyes(name) {
@@ -1091,11 +1110,20 @@ export class RoboEyes {
         // Port: the mood sets how big the eyes are drawn, and how often they blink
         const mood = this.moods[this.mood] ?? {}, baseMood = this.moods.default ?? {}; // what a mood leaves out is the default mood's
         // (halfway each frame, but never in whole numbers: it is a multiple, so "pixel" precision rounds the sizes instead)
-        const scale = Math.max(0.1, mood.scale ?? baseMood.scale ?? 1);
         // Port: with reduced motion, each pose holds and nothing keeps moving
         const still = this.motionReduced();
-        // Port: a mood that has just changed eases in more slowly than the usual half of the way a frame
-        const moodSpeed = !still && millis() < this.transitionEnd ? this.transitionSpeed : undefined;
+        // Port: the mood's intro, a step at a time, then the mood's own states (reduced motion ends it at once)
+        if ((this.introStep || this.introQueue.length) && (still || millis() >= this.introEnd)) {
+            if (still)
+                this.introQueue = [];
+            this.introStep = this.introQueue.shift();
+            this.applyMoodStates(this.introStep);
+            this.introEnd = this.introStep ? millis() + Math.max(0, this.introStep.ms) : 0;
+        }
+        const scale = Math.max(0.1, this.introStep?.scale ?? mood.scale ?? baseMood.scale ?? 1);
+        // Port: a mood that has just changed eases in more slowly than the usual half of the way a frame; an intro
+        // step's scale doesn't, so a pop is quick
+        const moodSpeed = !still && !this.introStep?.scale && millis() < this.transitionEnd ? this.transitionSpeed : undefined;
         this.eyeScale = Math.abs(scale - this.eyeScale) < 0.005 ? scale : this.eyeScale + (scale - this.eyeScale) * (moodSpeed ?? 0.5);
         // Port: mouth length, height and corners ease the same way
         const now = millis();
@@ -1335,10 +1363,28 @@ export class RoboEyes {
             const mid = lx + int(lw / 2);
             leftCuts.push(...this.lidCuts(mid, lx, ly, lh, this.lids.left), ...this.lidCuts(mid, lx + lw, ly, lh, this.lids.right));
         }
-        // Draw basic eye rectangles, with their eyelids cut out
-        d.fillRoundRect(lx, ly, lw, lh, int(this.eyeLborderRadiusCurrent * s), leftCuts); // left eye
-        if (!this.cyclops) {
-            d.fillRoundRect(rx, ry, rw, rh, int(this.eyeRborderRadiusCurrent * s), rightCuts); // right eye
+        if (eyes.shape === 'heart') {
+            // Port: heart eyes beat; a blink squashes them like any eye (reduced motion holds them still)
+            const beat = this.motionReduced() ? 1 : 1 + 0.08 * Math.max(0, Math.sin(millis() / 140)) ** 2;
+            const heart = (x, y, w, h) => {
+                const cx = x + w / 2, cy = y + h / 2, hw = w * beat * 0.62, hh = h * beat * 0.58;
+                d.strokeLine({ start: [cx, cy + hh], segments: [
+                        { control: [cx - hw * 1.25, cy + hh * 0.05], to: [cx - hw, cy - hh * 0.45] },
+                        { control: [cx - hw * 0.75, cy - hh * 1.05], to: [cx, cy - hh * 0.4] },
+                        { control: [cx + hw * 0.75, cy - hh * 1.05], to: [cx + hw, cy - hh * 0.45] },
+                        { control: [cx + hw * 1.25, cy + hh * 0.05], to: [cx, cy + hh] },
+                    ] }, 1, true);
+            };
+            heart(lx, ly, lw, lh);
+            if (!this.cyclops)
+                heart(rx, ry, rw, rh);
+        }
+        else {
+            // Draw basic eye rectangles, with their eyelids cut out
+            d.fillRoundRect(lx, ly, lw, lh, int(this.eyeLborderRadiusCurrent * s), leftCuts); // left eye
+            if (!this.cyclops) {
+                d.fillRoundRect(rx, ry, rw, rh, int(this.eyeRborderRadiusCurrent * s), rightCuts); // right eye
+            }
         }
         // Port: the mouth
         this.drawMouth();
@@ -1604,6 +1650,9 @@ function eyesWith(base, patch) {
         bottom: { ...base.bottom, ...withoutNulls(patch?.bottom) },
         closed: patch?.closed ?? base.closed,
     };
+    const shape = patch?.shape === null ? undefined : patch?.shape ?? base.shape;
+    if (shape)
+        eyes.shape = shape;
     // null takes it out of its folder
     const group = patch?.group === null ? undefined : patch?.group ?? base.group;
     if (group)
