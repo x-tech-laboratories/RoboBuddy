@@ -62,6 +62,9 @@ export interface LookState {
         reach: number;
         holdMs: number;
     };
+    /** Instead of holding still, follow the point set with lookAt() (the demo sets it to the mouse). x and y are
+     *  where the eyes rest until lookAt() is first called. */
+    follow?: boolean;
     /** Keep shaking the head while looking here (at the shakeHead settings), until another look is set. */
     shakeHead?: boolean;
     /** Keep nodding while looking here (at the nod settings), until another look is set. */
@@ -100,6 +103,9 @@ export interface Modes {
     mouth: boolean;
     /** Fractional maths for softer motion, instead of the original's whole pixels. */
     smooth: boolean;
+    /** Keep each pose but stop what keeps moving: auto blink, wander, dart, shake, sweat, laugh, shaking the head,
+     *  nodding and the talk toggle. 'auto' follows the system's prefers-reduced-motion setting. */
+    reducedMotion: boolean | 'auto';
 }
 /**
  * A mood: face states by name, and toggles. An eye or mouth state it leaves out is "open" or "softSmile"; a toggle
@@ -109,6 +115,15 @@ export interface MoodConfig extends Partial<Toggles> {
     eyes?: string;
     mouth?: string;
     look?: string;
+    /** How big the eyes are in this mood, as a multiple of their size: 1.12 for wide eyes, 0.9 for small ones. Each
+     *  eye grows from its centre, lids and all. 1 if left out. */
+    scale?: number;
+    /** Auto blink timing for this mood (FaceConfig.blink's interval and variation, in seconds). What it leaves out is
+     *  the face's own. Slow for calm or focused, quick for worried. */
+    blink?: {
+        interval?: number;
+        variation?: number;
+    };
     /** Changes to the chosen eye and mouth states, for this mood only. */
     override?: {
         eyes?: Patch<EyeState>;
@@ -125,12 +140,14 @@ export interface EyeShape {
 /** Every setting of a face. Pixel values are in screen pixels. Times are in seconds unless named ms. */
 export interface FaceConfig {
     frameRate: number;
-    /** closedHeight: how tall a closed eye stays. The default matches the mouth's thickness. */
+    /** closedHeight: how tall a closed eye stays. The default matches the mouth's thickness.
+     *  offsetY: how far the face, eyes and mouth centred together, is moved down from the middle of the screen. */
     eyes: {
         left: EyeShape;
         right: EyeShape;
         spacing: number;
         closedHeight: number;
+        offsetY: number;
     };
     mouth: {
         /** Space between the bottom of the eyes and the mouth. */
@@ -162,6 +179,13 @@ export interface FaceConfig {
     curious: {
         growth: number;
         edge: number;
+    };
+    /** A follow look: fullX and fullY are how much of the way to the edge of the area being watched the pointer must go,
+     *  across and down, for the eyes to turn as far as they can (0 to 1). The demo measures it from the face to the
+     *  window's edge. */
+    follow: {
+        fullX: number;
+        fullY: number;
     };
     laugh: {
         amplitude: number;

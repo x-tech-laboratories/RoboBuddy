@@ -108,6 +108,8 @@ export declare class RoboEyes {
     curiousGrowth: number;
     curiousEdge: number;
     cyclops: boolean;
+    reducedMotion: boolean | 'auto';
+    eyeScale: number;
     eyesClosed: boolean;
     eyeLheld: boolean;
     eyeRheld: boolean;
@@ -116,6 +118,7 @@ export declare class RoboEyes {
     eyeLwidthDefault: number;
     eyeLheightDefault: number;
     eyeLwidthCurrent: number;
+    faceOffsetY: number;
     eyeClosedHeight: number;
     eyeLheightCurrent: number;
     eyeLwidthNext: number;
@@ -195,6 +198,11 @@ export declare class RoboEyes {
     idleInterval: number;
     idleIntervalVariation: number;
     idleAnimationTimer: number;
+    following: boolean;
+    followFullX: number;
+    followFullY: number;
+    followX: number;
+    followY: number;
     darting: boolean;
     dartSide: number;
     dartTimer: number;
@@ -283,6 +291,9 @@ export declare class RoboEyes {
     setEyes(name: string): void;
     setMouthState(name: string): void;
     setLook(name: string): void;
+    /** Port: where a follow look points, as fractions of how far the eyes can move (x: 0 left, 1 right; y: 0 up, 1 down).
+     *  Call it as often as the target moves, e.g. from a mousemove handler. */
+    lookAt(x: number, y: number): void;
     /** Port: the eye state in use, with the mood's changes to it. */
     currentEyes(): EyeState;
     /** Port: the mouth state in use, with the mood's changes to it. */
@@ -310,8 +321,10 @@ export declare class RoboEyes {
     }>): void;
     setMouthGap(gap: number): void;
     getScreenConstraint_X(): number;
-    getScreenConstraint_Y(): number;
-    getMouthSpace(): number;
+    eyeYAt(fraction: number): number;
+    mouthReach(): number;
+    motionReduced(): boolean;
+    private motionQuery?;
     close(left?: boolean, right?: boolean): void;
     open(left?: boolean, right?: boolean): void;
     blink(left?: boolean, right?: boolean): void;
