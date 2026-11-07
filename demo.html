@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>RoboEyes face builder</title>
+    <title>RoboBuddy face builder</title>
     <style>
         :root { --outline: #8b93a1; }
         [hidden] { display: none !important; }
@@ -67,8 +67,8 @@
 </head>
 
 <body>
-    <h1>RoboEyes face builder</h1>
-    <p><a href="./">Docs</a> · <a href="https://github.com/x-tech-laboratories/RoboEyes">Source</a></p>
+    <h1>RoboBuddy face builder</h1>
+    <p><a href="./">Docs</a> · <a href="https://github.com/x-tech-laboratories/RoboBuddy">Source</a></p>
 
     <div class="layout">
     <div class="stage">
@@ -306,9 +306,9 @@
     </div>
     </div>
 
-    <script src="dist/roboeyes.global.js"></script>
+    <script src="dist/robobuddy.global.js"></script>
     <script>
-        const R = window.RoboEyesLib;
+        const R = window.RoboBuddyLib;
 
         // What the demo changes from the library's defaults: the robot's 112 x 80 screen gets slightly smaller eyes
         // and mouths
@@ -324,7 +324,7 @@
             },
         });
         const canvas = document.getElementById('face');
-        const face = new R.RoboEyes(canvas, { config: faceConfig });
+        const face = new R.RoboBuddy(canvas, { config: faceConfig });
         face.setDisplayColors('#000', '#fff');
         face.begin(112, 80, 50);
         face.start();
@@ -731,7 +731,7 @@
             const config = R.mergeConfig(face.getConfig(), { transition: { durationMs: 0 }, toggles: { autoblink: false } });
             const screen = document.createElement('canvas');
             for (const name of Object.keys(config.moods)) {
-                const preview = new R.RoboEyes(screen, { config });
+                const preview = new R.RoboBuddy(screen, { config });
                 preview.setDisplayColors('#000', '#fff');
                 preview.begin(112, 80, 50);
                 preview.setMood(name);
@@ -833,7 +833,7 @@
 
         //// Import and export ////
 
-        const STORAGE_KEY = 'roboeyes-face-builder';
+        const STORAGE_KEY = 'robobuddy-face-builder';
         let statusTimer;
         function say(message, error = false) {
             const box = $('status');

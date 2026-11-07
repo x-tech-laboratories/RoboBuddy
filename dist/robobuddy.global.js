@@ -1,5 +1,1226 @@
+/* RoboBuddy, script-tag build: everything is on window.RoboBuddyLib. Licence and credits below. */
+(function () {
 /*
- * RoboEyes for the web: a TypeScript port of FluxGarage RoboEyes for OLED Displays V 1.1.1,
+ * RoboBuddy for the web: the face's settings and their defaults.
+ *
+ * Port and mouth: Copyright (C) 2026 X Tech Laboratories
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+const defaultConfigJson = {
+    "frameRate": 50,
+    "eyes": {
+        "left": {
+            "width": 36,
+            "height": 36,
+            "radius": 8
+        },
+        "right": {
+            "width": 36,
+            "height": 36,
+            "radius": 8
+        },
+        "spacing": 10,
+        "closedHeight": 3,
+        "offsetY": 0
+    },
+    "mouth": {
+        "gap": 16,
+        "thickness": 3,
+        "radius": 4,
+        "curl": 0.25,
+        "width": 50,
+        "moodWidth": false
+    },
+    "blink": {
+        "interval": 1,
+        "variation": 4,
+        "speed": 0.5
+    },
+    "transition": {
+        "durationMs": 500,
+        "speed": 0.2,
+        "blink": false
+    },
+    "wander": {
+        "interval": 1,
+        "variation": 3
+    },
+    "curious": {
+        "growth": 8,
+        "edge": 10
+    },
+    "follow": {
+        "fullX": 0.6,
+        "fullY": 0.4
+    },
+    "laugh": {
+        "frequency": 6,
+        "amplitude": 3,
+        "mouthAmplitude": 2,
+        "squint": 0.35,
+        "mouthOpen": 8
+    },
+    "cry": {
+        "drops": 2,
+        "speed": 0.5,
+        "fall": 18,
+        "size": 3,
+        "rise": 5,
+        "frequency": 3,
+        "amplitude": 2,
+        "mouthAmplitude": 1
+    },
+    "sigh": {
+        "frequency": 0.25,
+        "amplitude": 3,
+        "mouthAmplitude": 2,
+        "mouthOpen": 5,
+        "mouthNarrow": 0.3
+    },
+    "shakeHead": {
+        "amplitude": 20,
+        "speed": 0.5
+    },
+    "nod": {
+        "amplitude": 6,
+        "speed": 0.5
+    },
+    "talk": {
+        "syllableMs": 110,
+        "variationMs": 90,
+        "pauseChance": 0.2,
+        "open": 8,
+        "lipLift": 2,
+        "cornerSway": 1.5,
+        "visemes": {
+            "rest": { "open": 0, "corner": 1, "width": 1, "lift": 0, "lip": 0 },
+            "mbp": { "open": 0, "corner": 1, "width": 0.95, "lift": 0, "lip": 0 },
+            "ah": { "open": 1, "corner": 1, "width": 1, "lift": 0, "lip": 1 },
+            "eh": { "open": 0.6, "corner": 1, "width": 1.05, "lift": 0.5, "lip": 0.7 },
+            "ee": { "open": 0.25, "corner": 0.5, "width": 1.15, "lift": 1.5, "lip": 0.3 },
+            "o": { "open": 0.7, "corner": 0.4, "width": 0.7, "lift": 0, "lip": 0.6 },
+            "oo": { "open": 0.35, "corner": 0.3, "width": 0.55, "lift": 0, "lip": 0.2 },
+            "fv": { "open": 0.2, "corner": 0.6, "width": 1, "lift": 0, "lip": 1 },
+            "ch": { "open": 0.3, "corner": 0.4, "width": 0.75, "lift": 0, "lip": 0.4 },
+            "ss": { "open": 0.2, "corner": 0.8, "width": 1.05, "lift": 0.5, "lip": 0.3 },
+            "uh": { "open": 0.4, "corner": 1, "width": 1, "lift": 0, "lip": 0.3 },
+            "ih": { "open": 0.3, "corner": 0.8, "width": 1.08, "lift": 0.6, "lip": 0.3 },
+            "th": { "open": 0.2, "corner": 0.8, "width": 1, "lift": 0, "lip": 0.2 },
+            "er": { "open": 0.35, "corner": 0.5, "width": 0.8, "lift": 0, "lip": 0.3 },
+            "kg": { "open": 0.3, "corner": 1, "width": 1, "lift": 0, "lip": 0.2 }
+        }
+    },
+    "shake": {
+        "amplitude": 2
+    },
+    "modes": {
+        "cyclops": false,
+        "mouth": true,
+        "smooth": true,
+        "reducedMotion": "auto"
+    },
+    "look": "wander",
+    "toggles": {
+        "autoblink": false,
+        "curious": false,
+        "sweat": false,
+        "shake": false,
+        "talk": false,
+        "laugh": false,
+        "cry": false,
+        "sigh": false
+    },
+    "eyeStates": {
+        "open": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false
+        },
+        "sad": {
+            "top": {
+                "height": 0.5,
+                "angle": 1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Sad"
+        },
+        "angry": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Anger"
+        },
+        "happy": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.3,
+                "angle": 0,
+                "curve": 0.2
+            },
+            "closed": false,
+            "group": "Happy"
+        },
+        "happySad": {
+            "top": {
+                "height": 0.5,
+                "angle": 1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": false,
+            "group": "Sad"
+        },
+        "confused": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": false,
+            "group": "Thinking",
+            "left": {
+                "top": {
+                    "height": 0.4,
+                    "angle": -0.3
+                }
+            }
+        },
+        "sleepy": {
+            "top": {
+                "height": 0.5,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "bottom": {
+                "height": 0.35,
+                "angle": 0,
+                "curve": -0.1
+            },
+            "closed": false,
+            "group": "Sleepy"
+        },
+        "drowsy": {
+            "top": {
+                "height": 0.72,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": -0.1
+            },
+            "closed": false,
+            "group": "Sleepy"
+        },
+        "closed": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": true
+        },
+        "winkLeft": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": "left",
+            "group": "One eye"
+        },
+        "winkRight": {
+            "top": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0,
+                "angle": 0,
+                "curve": 0
+            },
+            "closed": "right",
+            "group": "One eye"
+        },
+        "peekLeft": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": "right",
+            "group": "One eye"
+        },
+        "peekRight": {
+            "top": {
+                "height": 0.5,
+                "angle": -1,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.4,
+                "angle": 0,
+                "curve": 0.1
+            },
+            "closed": "left",
+            "group": "One eye"
+        },
+        "disgusted": {
+            "top": {
+                "height": 0.45,
+                "angle": 0,
+                "curve": 0
+            },
+            "bottom": {
+                "height": 0.3,
+                "angle": 0,
+                "curve": -0.15
+            },
+            "closed": false,
+            "group": "Disgust"
+        }
+    },
+    "mouthStates": {
+        "flat": {
+            "left": 0,
+            "right": 0,
+            "width": 16
+        },
+        "open": {
+            "left": 0,
+            "right": 0,
+            "width": 20,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6
+        },
+        "closedGasp": {
+            "left": 0,
+            "right": 0,
+            "width": 3,
+            "ownWidth": true
+        },
+        "openGasp": {
+            "left": 0,
+            "right": 0,
+            "width": 14,
+            "ownWidth": true,
+            "open": 10,
+            "leftOpen": 10,
+            "rightOpen": 10,
+            "group": "Surprise"
+        },
+        "wry": {
+            "left": 3,
+            "right": -3,
+            "width": 20,
+            "group": "Fear"
+        },
+        "softSmile": {
+            "left": 3,
+            "right": 3,
+            "width": 24,
+            "group": "Happy"
+        },
+        "smile": {
+            "left": 4,
+            "right": 4,
+            "width": 28,
+            "group": "Happy"
+        },
+        "openSmile": {
+            "left": 1,
+            "right": 1,
+            "width": 24,
+            "open": 6,
+            "group": "Happy"
+        },
+        "wideSmile": {
+            "left": 4,
+            "right": 4,
+            "width": 32,
+            "open": 8,
+            "leftOpen": 3,
+            "rightOpen": 3,
+            "group": "Happy"
+        },
+        "laugh": {
+            "left": 2,
+            "right": 2,
+            "width": 32,
+            "open": 10,
+            "leftOpen": 6,
+            "rightOpen": 6,
+            "group": "Happy"
+        },
+        "smirk": {
+            "left": 4,
+            "right": 0,
+            "width": 20,
+            "followLook": true,
+            "group": "Happy"
+        },
+        "slack": {
+            "left": -1,
+            "right": -1,
+            "width": 12,
+            "group": "Sad"
+        },
+        "frown": {
+            "left": -3,
+            "right": -3,
+            "width": 18,
+            "group": "Sad"
+        },
+        "flatBottomFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 10,
+            "leftOpen": 4,
+            "rightOpen": 4,
+            "group": "Sad"
+        },
+        "openFrown": {
+            "left": -6,
+            "right": -6,
+            "width": 28,
+            "open": 6,
+            "leftOpen": 6,
+            "rightOpen": 6,
+            "group": "Sad"
+        },
+        "grimace": {
+            "left": -4,
+            "right": 1,
+            "width": 20,
+            "followLook": true,
+            "group": "Disgust"
+        }
+    },
+    "looks": {
+        "center": {
+            "x": 0.5,
+            "y": 0.5
+        },
+        "N": {
+            "x": 0.5,
+            "y": 0
+        },
+        "NE": {
+            "x": 1,
+            "y": 0
+        },
+        "E": {
+            "x": 1,
+            "y": 0.5
+        },
+        "SE": {
+            "x": 1,
+            "y": 1
+        },
+        "S": {
+            "x": 0.5,
+            "y": 1
+        },
+        "SW": {
+            "x": 0,
+            "y": 1
+        },
+        "W": {
+            "x": 0,
+            "y": 0.5
+        },
+        "NW": {
+            "x": 0,
+            "y": 0
+        },
+        "wander": {
+            "x": 0.5,
+            "y": 0.5,
+            "wander": true,
+            "group": "Moving"
+        },
+        "lookAround": {
+            "x": 0.5,
+            "y": 0.5,
+            "wander": {
+                "interval": 0.3,
+                "variation": 0.6
+            },
+            "group": "Moving"
+        },
+        "glanceUp": {
+            "x": 0.5,
+            "y": 0.2,
+            "path": [
+                { "x": 0.3, "y": 0.2, "holdMs": 1500 },
+                { "x": 0.7, "y": 0.15, "holdMs": 1500 },
+                { "x": 0.5, "y": 0.1, "holdMs": 1000 }
+            ],
+            "group": "Moving"
+        },
+        "scan": {
+            "x": 0.5,
+            "y": 0.5,
+            "path": [
+                { "x": 0.35, "y": 0.5, "holdMs": 1700 },
+                { "x": 0.65, "y": 0.5, "holdMs": 1700 }
+            ],
+            "group": "Moving"
+        },
+        "shakeHeadUp": {
+            "x": 0.5,
+            "y": 0,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "shakeHeadCenterSlow": {
+            "x": 0.5,
+            "y": 0.5,
+            "shakeHead": {
+                "speed": 0.3
+            },
+            "group": "Shaking head"
+        },
+        "shakeHeadDown": {
+            "x": 0.5,
+            "y": 1,
+            "shakeHead": true,
+            "group": "Shaking head"
+        },
+        "nodLeft": {
+            "x": 0,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodCenter": {
+            "x": 0.5,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "nodRight": {
+            "x": 1,
+            "y": 0.5,
+            "nod": true,
+            "group": "Nodding"
+        },
+        "follow": {
+            "x": 0.5,
+            "y": 0.5,
+            "follow": true,
+            "group": "Moving"
+        }
+    },
+    "moods": {
+        "default": {
+            "look": "wander",
+            "autoblink": true
+        },
+        "happy": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "group": "Happy"
+        },
+        "laughing": {
+            "eyes": "happy",
+            "mouth": "laugh",
+            "laugh": true,
+            "group": "Happy"
+        },
+        "proud": {
+            "eyes": "happySad",
+            "mouth": "smile",
+            "group": "Happy"
+        },
+        "happyYes": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "look": "nodCenter",
+            "group": "Happy"
+        },
+        "happyNo": {
+            "eyes": "happy",
+            "mouth": "openSmile",
+            "look": "shakeHeadCenter",
+            "group": "Happy"
+        },
+        "smirk": {
+            "mouth": "smirk",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Happy"
+        },
+        "winkingLeft": {
+            "eyes": "winkLeft",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
+        "winkingRight": {
+            "eyes": "winkRight",
+            "mouth": "wideSmile",
+            "group": "Happy"
+        },
+        "yes": {
+            "look": "nodCenter"
+        },
+        "no": {
+            "look": "shakeHeadCenter"
+        },
+        "talking": {
+            "talk": true
+        },
+        "bored": {
+            "mouth": "flat",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            }
+        },
+        "disappointed": {
+            "mouth": "flat",
+            "look": "center",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Sad"
+        },
+        "disappointedNo": {
+            "mouth": "flat",
+            "look": "shakeHeadCenterSlow",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.5
+                    }
+                }
+            },
+            "group": "Sad"
+        },
+        "asleep": {
+            "eyes": "closed",
+            "mouth": "closedGasp",
+            "look": "center",
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "peaceful": {
+            "eyes": "sleepy",
+            "look": "center",
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "yawning": {
+            "eyes": "sleepy",
+            "mouth": "open",
+            "look": "center",
+            "sigh": true,
+            "autoblink": false,
+            "group": "Sleepy"
+        },
+        "waking": {
+            "look": "center",
+            "intro": [
+                { "eyes": "closed", "ms": 600 },
+                { "eyes": "drowsy", "ms": 500 },
+                { "eyes": "sleepy", "ms": 450 },
+                { "eyes": "drowsy", "ms": 350 },
+                { "eyes": "sleepy", "ms": 700 }
+            ],
+            "group": "Sleepy"
+        },
+        "confused": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "group": "Thinking"
+        },
+        "thinking": {
+            "mouth": "flat",
+            "look": "NW",
+            "override": {
+                "eyes": {
+                    "top": {
+                        "height": 0.4,
+                        "angle": -0.3,
+                        "curve": 0.15
+                    },
+                    "bottom": {
+                        "height": 0.3,
+                        "curve": 0.15
+                    }
+                }
+            },
+            "group": "Thinking"
+        },
+        "confusedYes": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "look": "nodCenter",
+            "group": "Thinking"
+        },
+        "confusedNo": {
+            "eyes": "confused",
+            "mouth": "wry",
+            "look": "shakeHeadCenter",
+            "group": "Thinking"
+        },
+        "surprised": {
+            "mouth": "openGasp",
+            "group": "Surprise"
+        },
+        "startled": {
+            "mouth": "closedGasp",
+            "scale": 1.12,
+            "intro": [
+                {
+                    "scale": 1.3,
+                    "ms": 150
+                }
+            ],
+            "group": "Surprise"
+        },
+        "curious": {
+            "mouth": "closedGasp",
+            "look": "follow",
+            "curious": true,
+            "group": "Surprise"
+        },
+        "surprisedYes": {
+            "mouth": "openGasp",
+            "look": "nodCenter",
+            "group": "Surprise"
+        },
+        "surprisedNo": {
+            "mouth": "openGasp",
+            "look": "shakeHeadCenter",
+            "group": "Surprise"
+        },
+        "sad": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "group": "Sad"
+        },
+        "sighing": {
+            "eyes": "sad",
+            "mouth": "flat",
+            "look": "S",
+            "sigh": true,
+            "group": "Sad"
+        },
+        "worried": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "group": "Fear"
+        },
+        "scared": {
+            "eyes": "sad",
+            "mouth": "flatBottomFrown",
+            "look": "lookAround",
+            "sweat": true,
+            "shake": true,
+            "group": "Fear"
+        },
+        "peekingLeft": {
+            "eyes": "peekLeft",
+            "mouth": "wry",
+            "look": "W",
+            "group": "Fear"
+        },
+        "peekingRight": {
+            "eyes": "peekRight",
+            "mouth": "wry",
+            "look": "E",
+            "group": "Fear"
+        },
+        "worriedYes": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "look": "nodCenter",
+            "group": "Fear"
+        },
+        "worriedNo": {
+            "eyes": "sad",
+            "mouth": "wry",
+            "look": "shakeHeadCenter",
+            "group": "Fear"
+        },
+        "sobbing": {
+            "eyes": "happySad",
+            "mouth": "openFrown",
+            "cry": true,
+            "group": "Sad"
+        },
+        "sadYes": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "look": "nodCenter",
+            "group": "Sad"
+        },
+        "sadNo": {
+            "eyes": "sad",
+            "mouth": "slack",
+            "look": "shakeHeadCenter",
+            "group": "Sad"
+        },
+        "angry": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "group": "Anger"
+        },
+        "furious": {
+            "eyes": "angry",
+            "mouth": "openFrown",
+            "curious": true,
+            "shake": true,
+            "group": "Anger"
+        },
+        "angryYes": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "look": "nodCenter",
+            "group": "Anger"
+        },
+        "angryNo": {
+            "eyes": "angry",
+            "mouth": "frown",
+            "look": "shakeHeadCenter",
+            "group": "Anger"
+        },
+        "disgusted": {
+            "eyes": "disgusted",
+            "mouth": "grimace",
+            "look": "SW",
+            "group": "Disgust"
+        }
+    }
+}
+;
+/** The face's settings and states as they come, kept in defaultConfig.json. */
+const defaultConfig = defaultConfigJson;
+/** A deep copy of config with patch laid over it. */
+function mergeConfig(config, patch) {
+    return merge(structuredClone(config), patch);
+}
+function merge(target, patch) {
+    for (const [key, value] of Object.entries(patch ?? {})) {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            target[key] = merge(target[key] && typeof target[key] === 'object' ? target[key] : {}, value);
+        }
+        else if (value !== undefined) {
+            target[key] = value;
+        }
+    }
+    return target;
+}
+
+/** How long each sound lasts at a normal pace, in ms. */
+const SOUND_MS = {
+    ah: 120, eh: 105, ee: 105, o: 120, oo: 110, ih: 80, uh: 65, er: 90,
+    mbp: 70, fv: 75, th: 70, ss: 60, ch: 85, kg: 55,
+};
+const VOWELS = new Set(['ah', 'eh', 'ee', 'o', 'oo', 'ih', 'uh', 'er']);
+/** Sounds made with the lips, which keep their own shape instead of taking the next vowel's. */
+const LIPS = new Set(['mbp', 'fv']);
+/** Sounds that keep their own shape. */
+const OWN = new Set(['er']);
+/** How long a mark of punctuation holds the mouth shut, in ms. */
+const PAUSE_MS = { ',': 220, ';': 260, ':': 260, '.': 380, '!': 380, '?': 380, '-': 120, '\n': 300 };
+/** Words the letter rules get wrong, as the sounds they are said with. */
+const WORDS = {
+    the: 'th uh', a: 'uh', an: 'eh ss', and: 'uh ss', of: 'uh fv', to: 'ss oo', too: 'ss oo', two: 'ss oo', you: 'ee oo',
+    your: 'ee o', are: 'ah', is: 'ih ss', was: 'oo uh ss', were: 'oo er', one: 'oo uh ss', once: 'oo uh ss', who: 'kg oo',
+    what: 'oo uh ss', where: 'oo eh', there: 'th eh', their: 'th eh', they: 'th eh ee', them: 'th eh mbp', then: 'th eh ss',
+    this: 'th ih ss', that: 'th eh ss', these: 'th ee ss', those: 'th o ss', with: 'oo ih th', have: 'kg eh fv', give: 'kg ih fv',
+    live: 'ss ih fv', love: 'ss uh fv', some: 'ss uh mbp', come: 'kg uh mbp', do: 'ss oo', does: 'ss uh ss', done: 'ss uh ss',
+    said: 'ss eh ss', says: 'ss eh ss', many: 'mbp eh ss ee', any: 'eh ss ee', very: 'fv eh er ee', people: 'mbp ee mbp uh',
+    eye: 'ah ee', i: 'ah ee', "i'm": 'ah ee mbp', "i'll": 'ah ee ss', "i've": 'ah ee fv', "i'd": 'ah ee ss', "don't": 'ss o ss',
+    "won't": 'oo o ss', "can't": 'kg eh ss', now: 'ss ah oo', how: 'kg ah oo', cow: 'kg ah oo', wow: 'oo ah oo', down: 'ss ah oo ss',
+    town: 'ss ah oo ss', brown: 'mbp er ah oo ss', hello: 'kg eh ss o', hi: 'kg ah ee', hey: 'kg eh ee', yes: 'ee eh ss', no: 'ss o',
+    robot: 'er o mbp ah ss', beautiful: 'mbp ee oo ss ih fv uh ss', through: 'th er oo', though: 'th o', thought: 'th o ss',
+    could: 'kg oo ss', would: 'oo oo ss', should: 'ch oo ss', because: 'mbp ih kg uh ss', friend: 'fv er eh ss', great: 'kg er eh ee ss',
+};
+/** The digits, said one at a time. */
+const DIGITS = ['ss ee er o', 'oo uh ss', 'ss oo', 'th er ee', 'fv o', 'fv ah ee fv', 'ss ih kg ss', 'ss eh fv uh ss', 'eh ee ss', 'ss ah ee ss'];
+const isVowel = (c) => c !== '' && 'aeiou'.includes(c);
+/** record[key] if the key is the record's own, so a word like "constructor" never finds a built-in property. */
+function own(record, key) {
+    return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
+/** The sounds of one word, by spelling. */
+function wordSounds(word) {
+    const w = word.replace(/'/g, '');
+    const n = w.length;
+    const out = [];
+    let groups = 0; // vowel groups so far; the first one carries the stress, the later ones are said lightly
+    const at = (k) => w[k] ?? '';
+    const vowel = (long, short) => {
+        out.push(...(long.length ? long : [groups === 0 || short === 'ih' ? short : 'uh']));
+        groups++;
+    };
+    for (let i = 0; i < n;) {
+        const c = w[i], rest = w.slice(i), prev = at(i - 1), next = at(i + 1), next2 = at(i + 2);
+        const starts = (s) => rest.startsWith(s);
+        // endings and groups of letters said as one
+        if (starts('tch')) {
+            out.push('ch');
+            i += 3;
+            continue;
+        }
+        if (starts('tion') || starts('sion') || starts('cian')) {
+            out.push('ch', 'uh', 'ss');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('ture')) {
+            out.push('ch', 'er');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('ing') && i + 3 === n) {
+            out.push('ih', 'kg');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ous') && i + 3 === n) {
+            out.push('uh', 'ss');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('igh')) {
+            out.push('ah', 'ee');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ough') || starts('augh')) {
+            out.push('o');
+            i += 4;
+            groups++;
+            continue;
+        }
+        if (starts('eau')) {
+            out.push('o');
+            i += 3;
+            groups++;
+            continue;
+        }
+        if (starts('ch') || starts('sh')) {
+            out.push('ch');
+            i += 2;
+            continue;
+        }
+        if (starts('ph')) {
+            out.push('fv');
+            i += 2;
+            continue;
+        }
+        if (starts('th')) {
+            out.push('th');
+            i += 2;
+            continue;
+        }
+        if (starts('wh')) {
+            out.push('oo');
+            i += 2;
+            continue;
+        }
+        if (starts('ck') || starts('ng')) {
+            out.push('kg');
+            i += 2;
+            continue;
+        }
+        if (starts('qu')) {
+            out.push('kg', 'oo');
+            i += 2;
+            continue;
+        }
+        if (starts('gh')) {
+            if (i === 0)
+                out.push('kg');
+            i += 2;
+            continue;
+        } // silent after a vowel: night, though
+        if (i === 0 && (starts('kn') || starts('gn'))) {
+            out.push('ss');
+            i += 2;
+            continue;
+        }
+        if (i === 0 && starts('wr')) {
+            out.push('er');
+            i += 2;
+            continue;
+        }
+        if (starts('mb') && i + 2 === n) {
+            out.push('mbp');
+            i += 2;
+            continue;
+        }
+        // vowel pairs
+        const pair = rest.slice(0, 2);
+        const pairs = {
+            ee: ['ee'], ea: ['ee'], ie: ['ee'], ei: ['ee'], ai: ['eh', 'ee'], ay: ['eh', 'ee'], oa: ['o'], oo: ['oo'], ou: ['ah', 'oo'],
+            oi: ['o', 'ee'], oy: ['o', 'ee'], au: ['o'], aw: ['o'], ew: ['oo'], ue: ['oo'], ui: ['oo'], eu: ['oo'],
+            ey: i + 2 === n ? ['ee'] : ['eh', 'ee'], ow: i + 2 === n ? ['o'] : ['ah', 'oo'],
+        };
+        if (pairs[pair] && !starts('oing')) {
+            out.push(...pairs[pair]);
+            i += 2;
+            groups++;
+            continue;
+        }
+        if (isVowel(c) || (c === 'y' && i > 0)) {
+            // a vowel before r takes the r's colour
+            if (next === 'r' && !isVowel(next2) && c !== 'y') {
+                if (c === 'a')
+                    out.push('ah');
+                else if (c === 'o')
+                    out.push('o');
+                else
+                    out.push('er');
+                groups++;
+                i += c === 'a' || c === 'o' ? 1 : 2;
+                continue;
+            }
+            // a silent final e, and the -ed / -es endings that lose theirs
+            if (c === 'e' && groups > 0 && !isVowel(prev) && (i === n - 1 || (i === n - 2 && (next === 'd' || next === 's') && !'tdsxzc'.includes(prev)))) {
+                i++;
+                continue;
+            }
+            const magicE = !isVowel(next) && next2 === 'e' && (i + 3 === n || (i + 4 === n && (at(n - 1) === 's' || at(n - 1) === 'd')));
+            const openFirst = groups === 0 && next !== '' && !isVowel(next) && isVowel(next2) && next !== next2;
+            const atEnd = i === n - 1;
+            if (c === 'y') {
+                if (atEnd)
+                    out.push(...(n <= 3 ? ['ah', 'ee'] : ['ee']));
+                else
+                    out.push('ih');
+                groups++;
+            }
+            else if (c === 'a')
+                vowel(magicE || openFirst ? ['eh', 'ee'] : atEnd && n > 1 ? ['uh'] : [], 'ah');
+            else if (c === 'e')
+                vowel(magicE || openFirst || (atEnd && n <= 3) ? ['ee'] : [], 'eh');
+            else if (c === 'i')
+                vowel(magicE || openFirst ? ['ah', 'ee'] : atEnd ? ['ee'] : [], 'ih');
+            else if (c === 'o')
+                vowel(magicE || openFirst || atEnd ? ['o'] : [], 'ah');
+            else
+                vowel(magicE || openFirst || atEnd ? ['oo'] : [], 'uh');
+            i++;
+            continue;
+        }
+        // consonants
+        if (c === next) {
+            i++;
+            continue;
+        } // a doubled letter is said once
+        if (c === 'l' && i === n - 2 && next === 'e' && !isVowel(prev)) {
+            out.push('uh', 'ss');
+            i += 2;
+            groups++;
+            continue;
+        } // table, little
+        if ('bpm'.includes(c))
+            out.push('mbp');
+        else if (c === 'f' || c === 'v')
+            out.push('fv');
+        else if (c === 'w')
+            out.push('oo');
+        else if (c === 'y')
+            out.push('ee');
+        else if (c === 'r')
+            out.push('er');
+        else if (c === 'j')
+            out.push('ch');
+        else if (c === 'x')
+            out.push('kg', 'ss');
+        else if (c === 'c')
+            out.push(next !== '' && 'eiy'.includes(next) ? 'ss' : 'kg');
+        else if (c === 'g')
+            out.push('eiy'.includes(next) && next !== '' ? 'ch' : 'kg');
+        else if ('kqh'.includes(c))
+            out.push('kg');
+        else if ('sztdnl'.includes(c))
+            out.push('ss');
+        i++;
+    }
+    return out;
+}
+const SPELLED = (text) => text.toLowerCase().replace(/[’‘]/g, "'");
+/** Mixes two shapes: 0 is a, 1 is b. */
+function mix(a, b, t, fields) {
+    const out = { ...a };
+    for (const f of fields)
+        out[f] = a[f] + (b[f] - a[f]) * t;
+    return out;
+}
+/**
+ * Turns text into a list of mouth shapes with durations, for speakVisemes(). visemes is the table of shapes
+ * (talk.visemes); a sound it has no shape for is left out.
+ */
+function textToVisemes(text, visemes, options = {}) {
+    const speed = Math.max(0.2, options.speed ?? 1);
+    const queue = [];
+    const push = (names) => {
+        const first = queue.length;
+        let stressed = false;
+        names.forEach((name) => {
+            if (!own(visemes, name))
+                return;
+            const isVowelSound = VOWELS.has(name);
+            const sound = { name, ms: SOUND_MS[name] ?? 80, stressed: isVowelSound && !stressed && name !== 'uh', wordEnd: false, pause: false };
+            if (sound.stressed)
+                stressed = true;
+            queue.push(sound);
+        });
+        if (queue.length > first) {
+            const last = queue[queue.length - 1];
+            last.wordEnd = true;
+            if (VOWELS.has(last.name))
+                last.ms *= 1.2; // a word's last vowel is drawn out a little
+        }
+    };
+    for (const token of SPELLED(text).match(/[a-z]+(?:'[a-z]+)*|\d|[,.;:!?\-\n]/g) ?? []) {
+        const pause = own(PAUSE_MS, token);
+        if (pause)
+            queue.push({ name: 'rest', ms: pause, stressed: false, wordEnd: false, pause: true });
+        else if (/\d/.test(token))
+            push(DIGITS[Number(token)].split(' '));
+        else
+            push((own(WORDS, token) ?? own(WORDS, token.replace(/'/g, '')))?.split(' ') ?? wordSounds(token));
+    }
+    // a stressed vowel is held longer
+    for (const s of queue)
+        if (s.stressed)
+            s.ms *= 1.25;
+    const neighbourVowel = (at) => {
+        for (let k = at + 1; k <= at + 2 && k < queue.length; k++) {
+            if (queue[k].pause)
+                break;
+            if (VOWELS.has(queue[k].name))
+                return visemes[queue[k].name];
+        }
+        for (let k = at - 1; k >= at - 2 && k >= 0; k--) {
+            if (queue[k].pause)
+                break;
+            if (VOWELS.has(queue[k].name))
+                return visemes[queue[k].name];
+        }
+        return undefined;
+    };
+    return queue.map((s, at) => {
+        const ms = s.ms / speed;
+        if (s.pause)
+            return { viseme: s.name, ms };
+        let shape = { ...visemes[s.name] };
+        const neighbour = neighbourVowel(at);
+        if (neighbour && !OWN.has(s.name)) {
+            if (LIPS.has(s.name))
+                shape = mix(shape, neighbour, 0.35, ['width', 'corner', 'lift']);
+            else if (!VOWELS.has(s.name))
+                shape = mix(shape, neighbour, 0.55, ['open', 'width', 'corner', 'lift', 'lip']);
+        }
+        // fast speech undershoots: the mouth does not get all the way to the shape
+        const rate = Math.min(1, 0.6 + 0.4 * (ms / (SOUND_MS[s.name] ?? 80)));
+        if (!LIPS.has(s.name)) {
+            shape.open *= rate;
+            shape.lip *= rate;
+        }
+        shape.width = 1 + (shape.width - 1) * rate;
+        return { viseme: shape, ms };
+    });
+}
+
+/*
+ * RoboBuddy for the web: a TypeScript port of FluxGarage RoboEyes for OLED Displays V 1.1.1,
  * with a mouth added.
  *
  * Original library: Copyright (C) 2024-2025 Dennis Hoelscher
@@ -54,33 +1275,29 @@
  *   which swing the eyes and mouth together until another look is set.
  * ---------------------------------------------------------------------------------------------
  */
-import { defaultConfig, mergeConfig, } from './config.js';
-import { textToVisemes } from './speech.js';
-export * from './config.js';
-export { textToVisemes } from './speech.js';
 // For mood type switch
-export const DEFAULT = 0;
-export const SAD = 1;
-export const TIRED = SAD; // the original's name for SAD
-export const ANGRY = 2;
-export const HAPPY = 3;
-export const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
-export const ASLEEP = 5; // port: closed eyes looking ahead, the closed gasp mouth's dot, no blinking (not in the original)
-export const PEACEFUL = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
-export const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
-export const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
+const DEFAULT = 0;
+const SAD = 1;
+const TIRED = SAD; // the original's name for SAD
+const ANGRY = 2;
+const HAPPY = 3;
+const SMIRK = 4; // port: default eyes, one-sided smile (not in the original)
+const ASLEEP = 5; // port: closed eyes looking ahead, the closed gasp mouth's dot, no blinking (not in the original)
+const PEACEFUL = 6; // port: sleepy eyes looking ahead, no blinking (not in the original)
+const WORRIED = 7; // port: sad eyes, mouth up on the left and down on the right (not in the original)
+const FURIOUS = 8; // port: angry eyes and frown, curious, shaking and looking around (not in the original)
 // For turning things on or off
-export const ON = true;
-export const OFF = false;
+const ON = true;
+const OFF = false;
 // For switch "predefined positions"
-export const N = 1; // north, top center
-export const NE = 2; // north-east, top right
-export const E = 3; // east, middle right
-export const SE = 4; // south-east, bottom right
-export const S = 5; // south, bottom center
-export const SW = 6; // south-west, bottom left
-export const W = 7; // west, middle left
-export const NW = 8; // north-west, top left
+const N = 1; // north, top center
+const NE = 2; // north-east, top right
+const E = 3; // east, middle right
+const SE = 4; // south-east, bottom right
+const S = 5; // south, bottom center
+const SW = 6; // south-west, bottom left
+const W = 7; // west, middle left
+const NW = 8; // north-west, top left
 // Port: the mood constants name these entries of FaceConfig.moods
 const MOOD_NAMES = ['default', 'sad', 'angry', 'happy', 'smirk', 'asleep', 'peaceful', 'worried', 'furious'];
 // Port: the position constants name these entries of FaceConfig.looks
@@ -88,7 +1305,7 @@ const POSITION_LOOKS = ['center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // Port: each toggle and the field that holds it (shake is the original's horizontal flicker)
 const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', shake: 'hFlicker', talk: 'mouthTalk', laugh: 'laugh', cry: 'cry', sigh: 'sigh' };
 /** Draws onto a <canvas>. Sharp at any size and device pixel ratio. */
-export class CanvasDisplay {
+class CanvasDisplay {
     constructor(canvas, options = {}) {
         this.canvas = canvas;
         this.width = 128;
@@ -102,7 +1319,7 @@ export class CanvasDisplay {
         this.main = '#ffffff';
         const ctx = canvas.getContext('2d');
         if (!ctx)
-            throw new Error('RoboEyes: canvas 2D context is not available');
+            throw new Error('RoboBuddy: canvas 2D context is not available');
         this.ctx = ctx;
         if (options.background)
             this.background = options.background;
@@ -231,7 +1448,7 @@ function random(max) {
 function millis() {
     return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
-export class RoboEyes {
+class RoboBuddy {
     //*********************************************************************************************
     //  GENERAL METHODS
     //*********************************************************************************************
@@ -657,7 +1874,7 @@ export class RoboEyes {
     int(value) {
         return this.precision === 'pixel' ? Math.trunc(value) : value;
     }
-    // Startup RoboEyes with defined screen-width, screen-height and max. frames per second
+    // Startup RoboBuddy with defined screen-width, screen-height and max. frames per second
     begin(width, height, frameRate) {
         this.screenWidth = width; // OLED display width, in pixels
         this.screenHeight = height; // OLED display height, in pixels
@@ -1697,9 +2914,12 @@ function entry(record, name) {
 /** Tells the developer about a name that is not in the face's config, which the face otherwise skips quietly. */
 function warnMissing(kind, name) {
     if (typeof console !== 'undefined')
-        console.warn(`RoboEyes: no ${kind} called "${name}"`);
+        console.warn(`RoboBuddy: no ${kind} called "${name}"`);
 }
 /** obj without the keys whose value is null or undefined, which mean "left out". */
 function withoutNulls(obj) {
     return Object.fromEntries(Object.entries(obj ?? {}).filter(([, value]) => value !== null && value !== undefined));
 }
+
+window.RoboBuddyLib = { defaultConfig, mergeConfig, wordSounds, textToVisemes, DEFAULT, SAD, TIRED, ANGRY, HAPPY, SMIRK, ASLEEP, PEACEFUL, WORRIED, FURIOUS, ON, OFF, N, NE, E, SE, S, SW, W, NW, CanvasDisplay, RoboBuddy };
+})();

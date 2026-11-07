@@ -25,7 +25,7 @@ export declare const NW = 8;
 export type Mood = typeof DEFAULT | typeof SAD | typeof ANGRY | typeof HAPPY | typeof SMIRK | typeof ASLEEP | typeof PEACEFUL | typeof WORRIED | typeof FURIOUS;
 export type Position = typeof DEFAULT | typeof N | typeof NE | typeof E | typeof SE | typeof S | typeof SW | typeof W | typeof NW;
 type Point = [number, number];
-/** What RoboEyes draws with: the handful of primitives the original takes from Adafruit GFX. */
+/** What RoboBuddy draws with: the handful of primitives the original takes from Adafruit GFX. */
 export interface Display {
     setSize(width: number, height: number): void;
     clearDisplay(): void;
@@ -89,7 +89,7 @@ interface LidPixels {
     outer: number;
     bow: number;
 }
-export declare class RoboEyes {
+export declare class RoboBuddy {
     display: Display;
     /** "pixel" keeps the original's whole-number maths; "smooth" allows fractions for softer motion. */
     precision: 'pixel' | 'smooth';

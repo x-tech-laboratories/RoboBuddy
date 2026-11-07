@@ -1,15 +1,15 @@
 {
-  "name": "@x-tech-laboratories/roboeyes",
+  "name": "@x-tech-laboratories/robobuddy",
   "version": "1.0.0",
   "description": "A TypeScript port of FluxGarage RoboEyes that draws animated robot eyes, and a mouth, on a canvas",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/x-tech-laboratories/RoboEyes.git"
+    "url": "git+https://github.com/x-tech-laboratories/RoboBuddy.git"
   },
   "type": "module",
-  "main": "./dist/roboeyes.js",
-  "types": "./dist/roboeyes.d.ts",
+  "main": "./dist/robobuddy.js",
+  "types": "./dist/robobuddy.d.ts",
   "files": ["dist"],
   "scripts": {
     "dist": "node build.mjs"

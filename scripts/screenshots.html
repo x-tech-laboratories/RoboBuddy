@@ -1,5 +1,5 @@
-<!doctype html><body style="background:#000"><script src="/dist/roboeyes.global.js"></script><script>
-const R = window.RoboEyesLib;
+<!doctype html><body style="background:#000"><script src="/dist/robobuddy.global.js"></script><script>
+const R = window.RoboBuddyLib;
 const cfg = R.mergeConfig(R.defaultConfig, {
   toggles: { autoblink: false },
   eyes: { left: { width: 30, height: 30 }, right: { width: 30, height: 30 }, spacing: 14 },
@@ -11,7 +11,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
   for (const name of Object.keys(cfg.moods)) {
     const c = document.createElement('canvas'); document.body.append(c);
-    const f = new R.RoboEyes(c, { config: cfg });
+    const f = new R.RoboBuddy(c, { config: cfg });
     f.setDisplayColors('#000', '#fff'); f.begin(112, 80, 50); f.setAutoblinker(false);
     f.setMood(name); f.setLook('center'); f.setAutoblinker(false);
     f.start();

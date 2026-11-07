@@ -1,4 +1,4 @@
-title: RoboEyes for the web
+title: RoboBuddy for the web
 description: Animated robot eyes and mouth on a canvas, with composable moods
 theme: jekyll-theme-cayman
 exclude: [src, build.mjs, package.json, tsconfig.json, node_modules]

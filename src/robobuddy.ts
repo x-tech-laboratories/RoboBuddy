@@ -1,5 +1,5 @@
 /*
- * RoboEyes for the web: a TypeScript port of FluxGarage RoboEyes for OLED Displays V 1.1.1,
+ * RoboBuddy for the web: a TypeScript port of FluxGarage RoboEyes for OLED Displays V 1.1.1,
  * with a mouth added.
  *
  * Original library: Copyright (C) 2024-2025 Dennis Hoelscher
@@ -101,7 +101,7 @@ const TOGGLES = { autoblink: 'autoblinker', curious: 'curious', sweat: 'sweat', 
 export type Position = typeof DEFAULT | typeof N | typeof NE | typeof E | typeof SE | typeof S | typeof SW | typeof W | typeof NW;
 type Point = [number, number];
 
-/** What RoboEyes draws with: the handful of primitives the original takes from Adafruit GFX. */
+/** What RoboBuddy draws with: the handful of primitives the original takes from Adafruit GFX. */
 export interface Display {
     setSize(width: number, height: number): void;
     clearDisplay(): void;
@@ -136,7 +136,7 @@ export class CanvasDisplay implements Display {
 
     constructor(private canvas: HTMLCanvasElement, options: { background?: string; main?: string } = {}) {
         const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('RoboEyes: canvas 2D context is not available');
+        if (!ctx) throw new Error('RoboBuddy: canvas 2D context is not available');
         this.ctx = ctx;
         if (options.background) this.background = options.background;
         if (options.main) this.main = options.main;
@@ -270,7 +270,7 @@ function millis() {
 /** An eyelid in pixels: how far it comes in at the inner and outer corner, and how much further in the middle. */
 interface LidPixels { inner: number; outer: number; bow: number }
 
-export class RoboEyes {
+export class RoboBuddy {
     // Yes, everything is currently still accessible. Be responsible and don't mess things up :)
 
     display: Display;
@@ -714,7 +714,7 @@ export class RoboEyes {
         return this.precision === 'pixel' ? Math.trunc(value) : value;
     }
 
-    // Startup RoboEyes with defined screen-width, screen-height and max. frames per second
+    // Startup RoboBuddy with defined screen-width, screen-height and max. frames per second
     begin(width: number, height: number, frameRate: number) {
         this.screenWidth = width; // OLED display width, in pixels
         this.screenHeight = height; // OLED display height, in pixels
@@ -1735,7 +1735,7 @@ function entry<T>(record: Record<string, T>, name: string): T | undefined {
 
 /** Tells the developer about a name that is not in the face's config, which the face otherwise skips quietly. */
 function warnMissing(kind: string, name: string) {
-    if (typeof console !== 'undefined') console.warn(`RoboEyes: no ${kind} called "${name}"`);
+    if (typeof console !== 'undefined') console.warn(`RoboBuddy: no ${kind} called "${name}"`);
 }
 
 /** obj without the keys whose value is null or undefined, which mean "left out". */

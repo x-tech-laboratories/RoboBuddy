@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'screenshots');
 fs.mkdirSync(out, { recursive: true });
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'roboeyes-ff-'));
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'robobuddy-ff-'));
 
 const server = http.createServer((req, res) => {
     if (req.method === 'POST') {

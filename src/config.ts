@@ -1,5 +1,5 @@
 /*
- * RoboEyes for the web: the face's settings and their defaults.
+ * RoboBuddy for the web: the face's settings and their defaults.
  *
  * Port and mouth: Copyright (C) 2026 X Tech Laboratories
  *

@@ -146,8 +146,8 @@ other than a canvas.
 ## Build and delivery
 
 - **TypeScript compiled by `tsc`, one extra step for script tags.** `build.mjs` joins the compiled modules into one
-  `dist/roboeyes.global.js` (inlining the JSON, since a script tag cannot import it) so the library works with no bundler,
-  as `window.RoboEyesLib`. The ES module build is the primary one.
+  `dist/robobuddy.global.js` (inlining the JSON, since a script tag cannot import it) so the library works with no bundler,
+  as `window.RoboBuddyLib`. The ES module build is the primary one.
 - **`dist/` is committed.** The demo and GitHub Pages load it directly, with no build step for a visitor.
 - **CI regenerates what drifts.** After each push to `main`, a workflow rebuilds `dist/` and re-renders every mood's
   screenshot in headless Firefox, then commits the result with `[skip ci]` so it does not trigger itself. Screenshots are

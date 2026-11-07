@@ -1,18 +1,18 @@
-# RoboEyes for the web (with a mouth)
+# RoboBuddy for the web (with a mouth)
 
 A TypeScript port of [FluxGarage RoboEyes](https://github.com/FluxGarage/RoboEyes) v1.1.1 by Dennis Hoelscher,
 drawing on a `<canvas>`, plus a mouth. GPL-3.0-or-later, like the original (see `LICENSE`).
 
-**[Live demo](https://x-tech-laboratories.github.io/RoboEyes/demo.html)** · [Docs](https://x-tech-laboratories.github.io/RoboEyes/)
+**[Live demo](https://x-tech-laboratories.github.io/RoboBuddy/demo.html)** · [Docs](https://x-tech-laboratories.github.io/RoboBuddy/)
 
 ## Use
 
 ```js
 import {
-    RoboEyes, DEFAULT, HAPPY, SAD, ANGRY, SMIRK, ASLEEP, PEACEFUL, WORRIED, FURIOUS, N, E, ON, OFF,
-} from './dist/roboeyes.js';
+    RoboBuddy, DEFAULT, HAPPY, SAD, ANGRY, SMIRK, ASLEEP, PEACEFUL, WORRIED, FURIOUS, N, E, ON, OFF,
+} from './dist/robobuddy.js';
 
-const eyes = new RoboEyes(document.querySelector('canvas'));
+const eyes = new RoboBuddy(document.querySelector('canvas'));
 eyes.setDisplayColors('transparent', '#8fd6ff'); // background, main colour (any CSS colour)
 eyes.begin(128, 64, 50);                         // screen width, height, max frame rate
 eyes.setAutoblinker(ON, 3, 2);
@@ -24,7 +24,7 @@ eyes.setPosition(E);       // look right (the same as setLook('E'))
 eyes.setLaugh(true);       // laughing is a toggle, like talk; shaking the head and nodding are looks, e.g. setLook('nodCenter')
 ```
 
-No bundler? Load `dist/roboeyes.global.js` with a script tag and use `window.RoboEyesLib`. `demo.html` does this.
+No bundler? Load `dist/robobuddy.global.js` with a script tag and use `window.RoboBuddyLib`. `demo.html` does this.
 
 Every method and setting of the original is here under the same name (`setWidth`, `setHeight`, `setBorderradius`,
 `setSpacebetween`, `setMood`, `setPosition`, `setAutoblinker`, `setIdleMode`, `setCuriosity`, `setCyclops`,
@@ -101,7 +101,7 @@ laughing it lifts with each bounce (`laughMouthAmplitude`) and opens.
 Every setting of a face is in one object, `FaceConfig`. `src/config.ts` holds the defaults (`defaultConfig`).
 
 ```js
-const eyes = new RoboEyes(canvas, { config: { mouth: { gap: 12 }, blink: { interval: 3 } } });
+const eyes = new RoboBuddy(canvas, { config: { mouth: { gap: 12 }, blink: { interval: 3 } } });
 eyes.configure({ mouthStates: { smile: { left: 6, right: 6 } } }); // change anything later
 const config = eyes.getConfig();                                  // everything, as plain JSON
 ```
@@ -234,9 +234,9 @@ change a setting. Your work is kept in the browser between visits.
 
 ## Build
 
-`npm run dist` (needs `tsc`) writes `dist/roboeyes.js`, `dist/config.js`, their `.d.ts` files and
-`dist/roboeyes.global.js`.
+`npm run dist` (needs `tsc`) writes `dist/robobuddy.js`, `dist/config.js`, their `.d.ts` files and
+`dist/robobuddy.global.js`.
 
-`dist/` is committed, so installing straight from GitHub (`npm install github:x-tech-laboratories/RoboEyes`) needs
+`dist/` is committed, so installing straight from GitHub (`npm install github:x-tech-laboratories/RoboBuddy`) needs
 no build. The script is called `dist`, not `build`, because npm installs a git dependency with a `build` script in
 full to prepare it, which also breaks offline installs such as Nix's.
